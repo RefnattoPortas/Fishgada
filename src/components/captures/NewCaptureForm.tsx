@@ -156,7 +156,9 @@ export default function NewCaptureForm({
     }
 
     try {
-      if (isOnline) {
+      const isGuest = userId === 'guest-user'
+
+      if (isOnline && !isGuest) {
         // Usar o cliente Supabase importado no topo
         const supabase = getSupabaseClient() as any
 
