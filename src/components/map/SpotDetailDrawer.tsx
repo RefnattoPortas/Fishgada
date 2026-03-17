@@ -70,7 +70,7 @@ export default function SpotDetailDrawer({
       {isOpen && (
         <div
           className="fixed inset-0 z-20 md:hidden"
-          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          style={{ background: 'rgba(0,0,0,0.65)' }}
           onClick={onClose}
         />
       )}

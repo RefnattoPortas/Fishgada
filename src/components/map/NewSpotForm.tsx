@@ -46,8 +46,7 @@ export default function NewSpotForm({ userId, onClose, onSuccess }: NewSpotFormP
 
   if (success) {
     return (
-      <div className="fixed inset-0 z-[1600] flex items-center justify-center p-4"
-        style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
+      <div className="fixed inset-0 z-[1600] flex items-center justify-center p-4 bg-black/90">
         <div className="glass-elevated fade-in" style={{ borderRadius: 24, padding: 48, textAlign: 'center', maxWidth: 360 }}>
           <div style={{ fontSize: 64, marginBottom: 20 }}>📍</div>
           <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent-primary)', marginBottom: 8 }}>
