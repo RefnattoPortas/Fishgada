@@ -103,7 +103,7 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
           owner_id: userId,
           name: data.title,
           description: data.description || null,
-          location: `POINT(${data.lng} ${data.lat})`,
+          location: `SRID=4326;POINT(${data.lng} ${data.lat})`,
           infrastructure: data.infra as any,
           opening_hours: { text: data.opening_hours } as any,
           prices: data.prices as any,

@@ -33,8 +33,13 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
     if (!data.title) return
     setLoading(true)
 
+    // Fallback seguro de UUID caso navegador não defina crypto (como http na rede local sem SSL)
+    const secureId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : `offline-${Date.now()}-${Math.floor(Math.random()*1000)}`
+
     const spotPayload = {
-      id: crypto.randomUUID(),
+      id: secureId,
       user_id: userId,
       title: data.title,
       description: data.description || null,
@@ -45,6 +50,18 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
       photo_url: null,
       fuzz_radius_m: 0,
       created_locally_at: new Date().toISOString(),
+    }
+
+    // Função de auxilio para evitar deadlock no indexedDB
+    const safeSaveOffline = async (payload: any) => {
+      try {
+        await Promise.race([
+          savePendingSpot(payload),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout idb')), 3000))
+        ])
+      } catch (e) {
+        console.error('Falha no salvamento offline cache:', e)
+      }
     }
 
     try {
@@ -60,14 +77,14 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
             description: data.description || null,
             privacy_level: data.privacy_level,
             water_type: data.water_type,
-            location: `POINT(${data.lng} ${data.lat})`,
+            location: `SRID=4326;POINT(${data.lng} ${data.lat})`,
             is_active: true
           }])
 
         if (error) throw error
       } else {
         // Salvar offline (IndexedDB)
-        await savePendingSpot(spotPayload)
+        await safeSaveOffline(spotPayload)
       }
 
       setSuccess(true)
@@ -76,9 +93,9 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
         onClose()
       }, 1500)
     } catch (error: any) {
-      console.error('Erro ao salvar ponto:', error)
+      console.error('Erro ao salvar ponto no supabase:', error)
       // Fallback offline em caso de erro
-      await savePendingSpot(spotPayload)
+      await safeSaveOffline(spotPayload)
       setSuccess(true)
       setTimeout(() => { onSuccess?.(); onClose() }, 1500)
     } finally {
