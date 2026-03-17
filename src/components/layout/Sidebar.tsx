@@ -12,13 +12,13 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import GoogleAuthButton from '@/components/auth/GoogleAuthButton'
 import SignOutButton from '@/components/auth/SignOutButton'
 import { User as SupabaseUser } from '@supabase/supabase-js'
+import { getRankByLevel } from '@/lib/utils/ranks'
 
 const navItems = [
-  { href: '/',           icon: Map,      label: 'Mapa',      id: 'nav-map' },
-  { href: '/captures',   icon: Fish,     label: 'Capturas',  id: 'nav-captures' },
-  { href: '/logbook',    icon: BookOpen, label: 'Diário',    id: 'nav-logbook' },
-  { href: '/ranking',    icon: Trophy,   label: 'Ranking',   id: 'nav-ranking' },
-  { href: '/profile',    icon: User,     label: 'Perfil',    id: 'nav-profile' },
+  { href: '/',           icon: Map,      label: 'Mapa',           id: 'nav-map' },
+  { href: '/captures',   icon: Fish,     label: 'Minhas Capturas', id: 'nav-captures' },
+  { href: '/leaderboard', icon: Trophy,   label: 'Leaderboard',    id: 'nav-leaderboard' },
+  { href: '/logbook',    icon: BookOpen, label: 'Diário de Pesca', id: 'nav-logbook' },
 ]
 
 interface SidebarProps {
@@ -31,24 +31,35 @@ interface SidebarProps {
 export default function Sidebar({
   isOnline = true,
   pendingSync = 0,
-  userLevel = 1,
-  userXP = 0,
 }: SidebarProps) {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState(false)
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [profile, setProfile] = useState<any>(null)
 
   useEffect(() => {
     const supabase = getSupabaseClient()
     
+    const fetchProfile = async (uid: string) => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', uid)
+        .single()
+      setProfile(data)
+    }
+
     // Check initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
+      if (user) fetchProfile(user.id)
     })
 
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) fetchProfile(session.user.id)
+      else setProfile(null)
     })
 
     return () => {
@@ -56,6 +67,9 @@ export default function Sidebar({
     }
   }, [])
 
+  const userLevel = profile?.level || 1
+  const userXP = profile?.xp_points || 0
+  const userRank = getRankByLevel(userLevel)
   const xpForNextLevel = userLevel * 500
   const xpProgress = Math.min((userXP % 500) / 500 * 100, 100)
 
@@ -111,31 +125,70 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* User Level Badge */}
-        {expanded && (
-          <div className="fade-in px-3 mb-3">
-            <div className="card p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="badge badge-amber">Nv. {userLevel}</div>
-                <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                  {userXP} XP
-                </span>
-              </div>
-              <div style={{ height: 4, background: 'var(--color-border)', borderRadius: 2 }}>
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${xpProgress}%`,
-                    background: 'linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary))',
-                    borderRadius: 2,
-                    transition: 'width 0.5s ease',
+        {/* User Profile Section */}
+        {user && (
+          <div className={`px-2 mb-4 transition-all ${expanded ? 'mt-2' : 'mt-0'}`}>
+            <div className={`flex items-center gap-3 p-2 rounded-2xl transition-all ${expanded ? 'bg-white/[0.03] border border-white/5' : ''}`}>
+               <Link href="/profile" className="relative flex-shrink-0 group">
+                <div 
+                  className="rounded-xl overflow-hidden glow-accent-small transition-transform group-hover:scale-105"
+                  style={{ 
+                    width: expanded ? 48 : 36, 
+                    height: expanded ? 48 : 36, 
+                    border: '2px solid var(--color-accent-primary)' 
                   }}
+                >
+                  {user.user_metadata.avatar_url ? (
+                    <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <User size={expanded ? 24 : 18} className="text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div 
+                  className="absolute -bottom-1 -right-1 text-[#000] text-[9px] font-black px-1.5 py-0.5 rounded-md border border-[#0a0f1a] shadow-lg"
+                  style={{ backgroundColor: userRank.color }}
+                >
+                  L{userLevel}
+                </div>
+              </Link>
+              
+              {expanded && (
+                <div className="fade-in flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <userRank.icon size={12} style={{ color: userRank.color }} />
+                    <span 
+                      className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap"
+                      style={{ color: userRank.color }}
+                    >
+                      {userRank.title}
+                    </span>
+                  </div>
+                  <p className="font-bold text-white text-sm truncate">
+                    {user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}
+                  </p>
+                  <div className="flex items-center justify-between mt-1 mb-1">
+                    <span className="text-[10px] text-accent font-bold uppercase tracking-tighter">XP {userXP}</span>
+                    <span className="text-[10px] text-gray-500 font-bold">{xpForNextLevel - (userXP % 500)} para L{userLevel + 1}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                    <div
+                      className="h-full bg-gradient-to-r from-accent to-accent-secondary rounded-full transition-all duration-1000"
+                      style={{ width: `${xpProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            {!expanded && (
+              <div className="mt-2 h-1 w-8 mx-auto bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent rounded-full transition-all duration-1000"
+                  style={{ width: `${xpProgress}%` }}
                 />
               </div>
-              <p style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                {xpForNextLevel - (userXP % 500)} XP para o próximo nível
-              </p>
-            </div>
+            )}
           </div>
         )}
 
@@ -212,28 +265,13 @@ export default function Sidebar({
 
           {/* Auth Buttons */}
           {user ? (
-            <div className="flex flex-col gap-1">
-              <Link href="/profile" className="sidebar-item">
-                <div 
-                  className="rounded-full overflow-hidden flex-shrink-0"
-                  style={{ width: 20, height: 20, border: '1px solid var(--color-border)' }}
-                >
-                  {user.user_metadata.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={14} className="m-auto" />
-                  )}
-                </div>
-                {expanded && (
-                  <span className="fade-in truncate" style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                    {user.user_metadata.full_name || user.email}
-                  </span>
-                )}
-              </Link>
+            <div className="flex flex-col gap-1 pb-2">
               <SignOutButton isExpanded={expanded} />
             </div>
           ) : (
-            <GoogleAuthButton isExpanded={expanded} />
+            <div className="pb-2">
+               <GoogleAuthButton isExpanded={expanded} />
+            </div>
           )}
         </div>
       </div>

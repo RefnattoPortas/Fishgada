@@ -452,4 +452,44 @@
   .cursor-crosshair { cursor: crosshair; }
   .pointer-events-none { pointer-events: none; }
   .select-none { user-select: none; }
+  
+  .spinner-small {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #00d4aa;
+    border-radius: 50%;
+    animation: spin-small 0.8s linear infinite;
+  }
+
+  @keyframes spin-small {
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-fade-in {
+    animation: fadeInModal 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-anim 1.5s infinite;
+  }
+
+  @keyframes shimmer-anim {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
 }

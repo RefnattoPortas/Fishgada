@@ -213,6 +213,7 @@ export interface Database {
           latest_lure_type: string | null
           latest_lure_model: string | null
           latest_lure_color: string | null
+          photo_url: string | null
           owner_name: string | null
           owner_avatar: string | null
         }

@@ -46,7 +46,7 @@ export default function NewSpotForm({ userId, onClose, onSuccess }: NewSpotFormP
 
   if (success) {
     return (
-      <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4"
+      <div className="fixed inset-0 z-[1600] flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
         <div className="glass-elevated fade-in" style={{ borderRadius: 24, padding: 48, textAlign: 'center', maxWidth: 360 }}>
           <div style={{ fontSize: 64, marginBottom: 20 }}>📍</div>
@@ -63,7 +63,7 @@ export default function NewSpotForm({ userId, onClose, onSuccess }: NewSpotFormP
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[1500] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
     >
       <div

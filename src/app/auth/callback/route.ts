@@ -32,8 +32,22 @@ export async function GET(request: Request) {
         },
       }
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+    const { error, data } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error && data?.user) {
+      const user = data.user
+      // Sincronizar dados do Google com a tabela pública profiles
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          display_name: user.user_metadata.full_name || user.user_metadata.name || 'Pescador',
+          avatar_url: user.user_metadata.avatar_url,
+          username: user.user_metadata.username || user.email?.split('@')[0] || `user_${user.id.substring(0, 5)}`,
+          updated_at: new Error().stack?.includes('upsert') ? new Date().toISOString() : undefined // truque simples para forçar update se necessário
+        })
+        .select()
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

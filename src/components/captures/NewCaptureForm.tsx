@@ -221,7 +221,7 @@ export default function NewCaptureForm({
   // Tela de sucesso
   if (success) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-content-center"
+      <div className="fixed inset-0 z-[1600] flex items-center justify-center"
         style={{ background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="glass-elevated fade-in" style={{ borderRadius: 20, padding: 40, textAlign: 'center', maxWidth: 320 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🎣</div>
@@ -238,7 +238,7 @@ export default function NewCaptureForm({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[1500] flex items-center justify-center p-4"
       style={{ 
         background: 'rgba(0,0,0,0.65)', 
         backdropFilter: 'blur(4px)', 

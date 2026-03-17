@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Sidebar from '@/components/layout/Sidebar'
-import SpotDetailDrawer from '@/components/map/SpotDetailDrawer'
+import SpotDetailsView from '@/components/map/SpotDetailsView'
 import MapFiltersBar, { MapFilters } from '@/components/map/MapFiltersBar'
 import type { SpotMapView } from '@/types/database'
 import { Plus, RefreshCw, MapPin } from 'lucide-react'
@@ -32,54 +32,54 @@ const NewSpotForm = dynamic(() => import('@/components/map/NewSpotForm'), { ssr:
 // Spots de exemplo (em produção viriam do Supabase)
 const DEMO_SPOTS: SpotMapView[] = [
   {
-    id: '1', user_id: 'u1', title: 'Rio Araguaia — Tucunaré Point',
+    id: '550e8400-e29b-41d4-a716-446655440001', user_id: '00000000-0000-0000-0000-000000000001', title: 'Rio Araguaia — Tucunaré Point',
     description: 'Ponto famoso para tucunaré. Melhor na época da piracema com isca de superfície.',
     privacy_level: 'public', fuzz_radius_m: 0, water_type: 'river',
     is_verified: true, verification_count: 7, community_unlock_captures: 0,
     created_at: '2025-06-01T10:00:00Z',
     display_lat: -13.4, display_lng: -50.7, exact_lat: -13.4, exact_lng: -50.7,
     total_captures: 23, latest_lure_type: 'topwater', latest_lure_model: 'Rapala X-Rap',
-    latest_lure_color: 'Chartreuse', owner_name: 'João Pescador', owner_avatar: null,
+    latest_lure_color: 'Chartreuse', photo_url: null, owner_name: 'João Pescador', owner_avatar: null,
   },
   {
-    id: '2', user_id: 'u2', title: 'Lago Corumbá — Dourado Bom',
+    id: '550e8400-e29b-41d4-a716-446655440002', user_id: '00000000-0000-0000-0000-000000000002', title: 'Lago Corumbá — Dourado Bom',
     description: 'Represa com muito dourado. Precisa de barco para chegar.',
     privacy_level: 'community', fuzz_radius_m: 800, water_type: 'reservoir',
     is_verified: false, verification_count: 2, community_unlock_captures: 5,
     created_at: '2025-08-15T08:00:00Z',
     display_lat: -16.2, display_lng: -48.9, exact_lat: -16.189, exact_lng: -48.877,
     total_captures: 11, latest_lure_type: 'jig', latest_lure_model: 'Fish Head Jig 1/2oz',
-    latest_lure_color: 'Laranja', owner_name: 'Maria Silva', owner_avatar: null,
+    latest_lure_color: 'Laranja', photo_url: null, owner_name: 'Maria Silva', owner_avatar: null,
   },
   {
-    id: '3', user_id: 'u3', title: 'Buraco Secreto do Zé',
+    id: '550e8400-e29b-41d4-a716-446655440003', user_id: '00000000-0000-0000-0000-000000000003', title: 'Buraco Secreto do Zé',
     description: 'Meu ponto preferido. Traíra enorme!',
     privacy_level: 'private', fuzz_radius_m: 0, water_type: 'lake',
     is_verified: false, verification_count: 0, community_unlock_captures: 10,
     created_at: '2025-10-01T06:30:00Z',
     display_lat: -15.9, display_lng: -49.3, exact_lat: -15.9, exact_lng: -49.3,
     total_captures: 5, latest_lure_type: 'natural_bait', latest_lure_model: 'Minhoca',
-    latest_lure_color: null, owner_name: 'Zé das Traíras', owner_avatar: null,
+    latest_lure_color: null, photo_url: null, owner_name: 'Zé das Traíras', owner_avatar: null,
   },
   {
-    id: '4', user_id: 'u4', title: 'Pantanal — Curva do Rio',
+    id: '550e8400-e29b-41d4-a716-446655440004', user_id: '00000000-0000-0000-0000-000000000004', title: 'Pantanal — Curva do Rio',
     description: 'Pintado e dourado em abundância na cheia. Setup de fundo garante captura.',
     privacy_level: 'public', fuzz_radius_m: 0, water_type: 'river',
     is_verified: true, verification_count: 12, community_unlock_captures: 0,
     created_at: '2025-03-01T12:00:00Z',
     display_lat: -18.5, display_lng: -57.2, exact_lat: -18.5, exact_lng: -57.2,
     total_captures: 47, latest_lure_type: 'bottom', latest_lure_model: 'Chumbada Torpedo',
-    latest_lure_color: null, owner_name: 'Carlos Pantaneiro', owner_avatar: null,
+    latest_lure_color: null, photo_url: null, owner_name: 'Carlos Pantaneiro', owner_avatar: null,
   },
   {
-    id: '5', user_id: 'u5', title: 'Litoral SP — Robalo na Pedra',
+    id: '550e8400-e29b-41d4-a716-446655440005', user_id: '00000000-0000-0000-0000-000000000005', title: 'Litoral SP — Robalo na Pedra',
     description: 'Pesca de robalo na maré baixa. Crankbait perto dos costões.',
     privacy_level: 'community', fuzz_radius_m: 500, water_type: 'sea',
     is_verified: true, verification_count: 4, community_unlock_captures: 3,
     created_at: '2025-09-20T17:00:00Z',
     display_lat: -23.8, display_lng: -45.4, exact_lat: -23.794, exact_lng: -45.388,
     total_captures: 18, latest_lure_type: 'crankbait', latest_lure_model: 'Storm Rattlin Chug Bug',
-    latest_lure_color: 'Branco Pérola', owner_name: 'André Marinheiro', owner_avatar: null,
+    latest_lure_color: 'Branco Pérola', photo_url: null, owner_name: 'André Marinheiro', owner_avatar: null,
   },
 ]
 
@@ -340,27 +340,16 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* ── DRAWER LATERAL DIREITO ────────────────────────── */}
-      <div
-        style={{
-          width: drawerOpen ? 'var(--drawer-width)' : 0,
-          minWidth: drawerOpen ? 'var(--drawer-width)' : 0,
-          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflow: 'hidden',
+      {/* ── VISUALIZAÇÃO DETALHADA DO PONTO ──────────────── */}
+      <SpotDetailsView
+        spot={selectedSpot}
+        isOpen={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false)
+          setActiveSpotId(null)
         }}
-      >
-        <SpotDetailDrawer
-          spot={selectedSpot}
-          userCaptureCount={user ? 10 : 0}
-          isOpen={drawerOpen}
-          onClose={() => {
-            setDrawerOpen(false)
-            setActiveSpotId(null)
-          }}
-          onNewCapture={handleNewCapture}
-          onVerify={handleVerify}
-        />
-      </div>
+        onNewCapture={handleNewCapture}
+      />
 
       {/* ── FORMULÁRIO DE CAPTURA (Modal) ─────────────────── */}
       {showCaptureForm && (
