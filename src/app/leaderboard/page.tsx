@@ -43,10 +43,11 @@ export default function LeaderboardPage() {
           .limit(1)
           .single()
 
+        const r = record as any
         return {
           ...u,
-          record_fish_species: record?.species,
-          record_fish_weight: record?.weight_kg
+          record_fish_species: r?.species,
+          record_fish_weight: r?.weight_kg
         } as LeaderboardUser
       }))
 
