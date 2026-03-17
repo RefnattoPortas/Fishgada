@@ -129,7 +129,10 @@ export default function NewCaptureForm({
     if (!data.species) return
     setSaving(true)
 
-    const captureId = crypto.randomUUID()
+    const captureId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : `offline-cap-${Date.now()}-${Math.floor(Math.random()*1000)}`
+
     const capturePayload = {
       id: captureId,
       user_id: userId,
@@ -155,16 +158,29 @@ export default function NewCaptureForm({
       } : undefined,
     }
 
+    console.log('[NewCaptureForm] Iniciando handleSave...', { spotId, userId, isOnline })
+    const isGuest = userId === 'guest-user'
+
+    const safeSaveCaptureOffline = async (payload: any) => {
+      console.log('[NewCaptureForm] Salvando captura offline...')
+      try {
+        await Promise.race([
+          savePendingCapture(payload),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout idb')), 5000))
+        ])
+        console.log('[NewCaptureForm] Captura salva offline com sucesso.')
+      } catch (e) {
+        console.error('[NewCaptureForm] Erro ao salvar offline:', e)
+      }
+    }
+
     try {
-      const isGuest = userId === 'guest-user'
-
       if (isOnline && !isGuest) {
-        // Usar o cliente Supabase importado no topo
+        console.log('[NewCaptureForm] Enviando para o Supabase...')
         const supabase = getSupabaseClient() as any
-
-        const { data: captureData, error } = await supabase
-          .from('captures')
-          .insert([{
+        
+        const result = await Promise.race([
+          supabase.from('captures').insert([{
             user_id: userId,
             spot_id: spotId || null,
             species: data.species,
@@ -180,11 +196,12 @@ export default function NewCaptureForm({
             wind_speed_kmh: data.wind_speed_kmh ? parseInt(data.wind_speed_kmh) : null,
             notes: data.notes || null,
             is_public: data.is_public,
-          }])
-          .select()
-          .single()
+          }]).select().single(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout supabase')), 10000))
+        ]) as any
 
-        if (error) throw error
+        if (result.error) throw result.error
+        const captureData = result.data
 
         // Salvar setup
         if (data.lure_type && captureData) {
@@ -200,19 +217,18 @@ export default function NewCaptureForm({
           })
         }
       } else {
-        // Salvar offline
-        await savePendingCapture(capturePayload)
+        await safeSaveCaptureOffline(capturePayload)
       }
 
+      console.log('[NewCaptureForm] Fluxo concluído com sucesso.')
       setSuccess(true)
       setTimeout(() => {
         onSuccess?.()
         onClose()
       }, 1500)
-    } catch (err) {
-      console.error('Erro ao salvar captura:', err)
-      // Fallback: salvar offline
-      await savePendingCapture(capturePayload)
+    } catch (err: any) {
+      console.error('[NewCaptureForm] Catch disparado:', err)
+      await safeSaveCaptureOffline(capturePayload)
       setSuccess(true)
       setTimeout(() => { onSuccess?.(); onClose() }, 1500)
     } finally {

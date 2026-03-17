@@ -54,13 +54,15 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
 
     // Função de auxilio para evitar deadlock no indexedDB
     const safeSaveOffline = async (payload: any) => {
+      console.log('[NewSpotForm] Iniciando salvamento offline de segurança...')
       try {
         await Promise.race([
           savePendingSpot(payload),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout idb')), 3000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout idb')), 5000))
         ])
+        console.log('[NewSpotForm] Sucesso no salvamento offline.')
       } catch (e) {
-        console.error('Falha no salvamento offline cache:', e)
+        console.error('[NewSpotForm] Falha ou timeout no salvamento offline cache:', e)
       }
     }
 
@@ -69,9 +71,11 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
       const isGuest = userId === 'guest-user'
       
       if (isOnline && !isGuest) {
-        const { error } = await supabase
-          .from('spots')
-          .insert([{
+        console.log('[NewSpotForm] Tentando salvar no Supabase...', { userId, isGuest })
+        
+        // Timeout para a chamada do Supabase para evitar hang eterno
+        const result = await Promise.race([
+          supabase.from('spots').insert([{
             user_id: userId,
             title: data.title,
             description: data.description || null,
@@ -79,23 +83,32 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
             water_type: data.water_type,
             location: `SRID=4326;POINT(${data.lng} ${data.lat})`,
             is_active: true
-          }])
+          }]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout supabase')), 10000))
+        ]) as any
 
-        if (error) throw error
+        if (result.error) {
+          console.error('[NewSpotForm] Erro retornado pelo Supabase:', result.error)
+          throw result.error
+        }
+        console.log('[NewSpotForm] Sucesso no Supabase.')
       } else {
+        console.log('[NewSpotForm] Modo offline ou Guest Detectado. Salvando via IDB.')
         // Salvar offline (IndexedDB)
         await safeSaveOffline(spotPayload)
       }
 
+      console.log('[NewSpotForm] Fluxo concluído com sucesso. Exibindo tela de confirmação.')
       setSuccess(true)
       setTimeout(() => {
         onSuccess?.()
         onClose()
       }, 1500)
     } catch (error: any) {
-      console.error('Erro ao salvar ponto no supabase:', error)
+      console.error('[NewSpotForm] Catch disparado. Fallback para offline:', error)
       // Fallback offline em caso de erro
       await safeSaveOffline(spotPayload)
+      console.log('[NewSpotForm] Fallback offline concluído. Exibindo sucesso (local).')
       setSuccess(true)
       setTimeout(() => { onSuccess?.(); onClose() }, 1500)
     } finally {

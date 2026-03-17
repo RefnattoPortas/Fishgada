@@ -97,9 +97,8 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
 
     try {
       // Criar o Resort diretamente (estrutura real do banco: owner_id + name + location)
-      const { error: resortError } = await supabase
-        .from('fishing_resorts')
-        .insert([{
+      const result = await Promise.race([
+        supabase.from('fishing_resorts').insert([{
           owner_id: userId,
           name: data.title,
           description: data.description || null,
@@ -112,9 +111,11 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
           website: data.website || null,
           is_partner: false, // Sempre começa como false, aguarda aprovação
           main_species: data.main_species
-        }])
+        }]),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout supabase')), 10000))
+      ]) as any
 
-      if (resortError) throw resortError
+      if (result.error) throw result.error
 
       // Se há mensagem para a equipe, registra como notificação interna (opcional)
       if (data.team_message) {
