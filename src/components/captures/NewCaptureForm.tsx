@@ -240,8 +240,8 @@ export default function NewCaptureForm({
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
       style={{ 
-        background: 'rgba(0,0,0,0.75)', 
-        backdropFilter: 'blur(8px)', 
+        background: 'rgba(0,0,0,0.65)', 
+        backdropFilter: 'blur(4px)', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center' 

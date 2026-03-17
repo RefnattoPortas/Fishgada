@@ -165,7 +165,7 @@ export default function Sidebar({
       <div className="divider mx-2 my-2" />
 
       {/* Status de conexão + sync */}
-      <div className="px-2 pb-1">
+      <div className="px-2 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
         <div
           className="sidebar-item"
           style={{ gap: 10 }}

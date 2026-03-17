@@ -25,8 +25,16 @@
 
     /* Sidebar */
     --sidebar-width: 64px;
-    --sidebar-expanded: 220px;
+    --sidebar-expanded: 240px;
     --drawer-width: 380px;
+  }
+
+  @media (max-width: 768px) {
+    :root {
+      --sidebar-width: 0px; /* Esconde no mobile por padrão ou vira floater */
+      --sidebar-expanded: 85vw;
+      --drawer-width: 100vw;
+    }
   }
 
   * {
@@ -55,17 +63,18 @@
 @layer components {
   /* ── GLASS MORPHISM ────────────────────────────────── */
   .glass {
-    background: rgba(15, 24, 41, 0.85);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: rgba(15, 24, 41, 0.82);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
     border: 1px solid var(--color-border);
   }
 
   .glass-elevated {
-    background: rgba(23, 34, 55, 0.92);
-    backdrop-filter: blur(20px) saturate(200%);
-    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    background: rgba(23, 34, 55, 0.95);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
     border: 1px solid var(--color-border-strong);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   /* ── CARDS ──────────────────────────────────────────── */
@@ -391,6 +400,34 @@
   }
 }
 
+  /* ── FAB CONTAINER ────────────────────────────────── */
+  .fab-container {
+    right: 24px;
+    bottom: 32px;
+    bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* No mobile, quando o drawer abre (100vw), o FAB fica por cima ou some. 
+     Vamos mantê-lo visível mas ajustar para não ser cortado */
+  @media (max-width: 768px) {
+    .fab-container {
+      right: 16px;
+      bottom: 24px;
+    }
+    .fab-container.drawer-open {
+      /* Se quiser esconder no mobile quando drawer abre: opacity: 0; pointer-events: none; */
+      /* Ou apenas mover um pouco */
+      transform: translateY(-80px); /* Sobe para não bater no botão do drawer */
+      z-index: 1001; /* Fica acima do drawer se necessário */
+    }
+  }
+
+  @media (min-width: 769px) {
+    .fab-container.drawer-open {
+      right: calc(var(--drawer-width) + 24px);
+    }
+  }
 @layer utilities {
   .text-xxs { font-size: 11px; }
   .cursor-crosshair { cursor: crosshair; }

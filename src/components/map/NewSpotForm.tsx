@@ -64,7 +64,7 @@ export default function NewSpotForm({ userId, onClose, onSuccess }: NewSpotFormP
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
     >
       <div
         className="glass-elevated fade-in-up"

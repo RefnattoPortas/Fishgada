@@ -265,15 +265,13 @@ export default function HomePage() {
 
         {/* FAB — Novo Ponto/Captura */}
         <div
+          className={`fab-container ${drawerOpen ? 'drawer-open' : ''}`}
           style={{
             position: 'absolute',
-            bottom: 32,
-            right: drawerOpen ? `calc(var(--drawer-width) + 24px)` : 24,
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
             zIndex: 900,
-            transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           {/* Botão de nova captura rápida */}
