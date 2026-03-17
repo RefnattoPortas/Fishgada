@@ -112,9 +112,9 @@ export default function FishingMap({
           attributionControl: false,
         })
 
-        // Tile layer escuro (CartoDB Dark Matter)
+        // Tile layer (CartoDB Voyager - claro mas discreto)
         L.tileLayer(
-          'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
           { maxZoom: 19, subdomains: 'abcd' }
         ).addTo(mapInstance)
 
