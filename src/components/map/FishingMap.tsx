@@ -37,6 +37,9 @@ interface FishingMapProps {
   theme?: 'dark' | 'light'
 }
 
+const DEFAULT_CENTER: [number, number] = [-15.7801, -47.9292]
+const DEFAULT_ZOOM = 6
+
 export default function FishingMap({
   spots,
   onSpotSelect,
@@ -44,8 +47,8 @@ export default function FishingMap({
   filterSpecies,
   filterLureType,
   showHeatmap = false,
-  center = [-15.7801, -47.9292], // Brasília como padrão
-  zoom = 6,
+  center = DEFAULT_CENTER,
+  zoom = DEFAULT_ZOOM,
   onMapClick,
   theme = 'light',
 }: FishingMapProps) {
@@ -238,9 +241,9 @@ export default function FishingMap({
 
       // Renderizar cada spot
       for (const spot of filteredSpots) {
-        const lat = spot.display_lat
-        const lng = spot.display_lng
-        if (!lat || !lng) continue
+        const lat = spot.display_lat ?? spot.exact_lat
+        const lng = spot.display_lng ?? spot.exact_lng
+        if (lat === null || lat === undefined || lng === null || lng === undefined) continue
 
         const isSelected = spot.id === selectedSpotId
         const privacyColor = PRIVACY_COLORS[spot.privacy_level as keyof typeof PRIVACY_COLORS] || '#00d4aa'

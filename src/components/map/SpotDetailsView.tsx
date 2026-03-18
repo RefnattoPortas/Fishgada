@@ -137,8 +137,10 @@ export default function SpotDetailsView({
     const bestPeriod = Object.entries(periodCounts)
       .sort((a, b) => b[1] - a[1])[0]
 
-    // 3. Rei do Ponto (Maior peixe)
-    const kingCapture = [...captures].sort((a, b) => (b.weight_kg || 0) - (a.weight_kg || 0))[0]
+    // 3. Rei do Ponto (Maior peixe com peso registrado)
+    const kingCapture = [...captures]
+      .filter(c => c.weight_kg !== null && c.weight_kg !== undefined)
+      .sort((a, b) => (b.weight_kg || 0) - (a.weight_kg || 0))[0]
 
     // 4. Capturas por período (KPIs)
     const totalByPeriod = captures.length
@@ -392,7 +394,7 @@ export default function SpotDetailsView({
                   <div className="relative aspect-square">
                     <img src={cap.photo_url!} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={cap.species} />
                     <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-[10px] font-bold text-white truncate">{cap.species}</p>
+                      <p className="text-[10px] font-bold text-white truncate capitalize">{cap.species}</p>
                       <p className="text-[9px] text-accent font-bold">
                         {cap.weight_kg ? `${cap.weight_kg}kg` : ''} 
                         {cap.weight_kg && cap.length_cm ? ' · ' : ''}
@@ -435,11 +437,11 @@ export default function SpotDetailsView({
                     <div>
                       <p className="text-lg font-bold text-white">{stats.kingCapture.profiles?.display_name || 'Mestre Pescador'}</p>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-sm font-bold text-accent">
+                        <span className="text-sm font-bold text-accent capitalize">
                           {stats.kingCapture.species}
                         </span>
                         <span className="text-xs text-gray-400">
-                           рекорд: <strong className="text-white">{stats.kingCapture.weight_kg}kg</strong>
+                           recorde: <strong className="text-white">{stats.kingCapture.weight_kg}kg</strong>
                         </span>
                       </div>
                     </div>

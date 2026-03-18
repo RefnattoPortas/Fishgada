@@ -184,35 +184,35 @@ function HomeContent() {
     return result
   }, [spots, filters])
 
-  // Buscar spots do Supabase
-  useEffect(() => {
-    const fetchSpots = async () => {
-      setIsLoadingSpots(true)
-      try {
-        const { getSupabaseClient } = await import('@/lib/supabase/client')
-        const supabase = getSupabaseClient()
-        
-        const { data, error } = await supabase
-          .from('spots_map_view')
-          .select('*')
-        
-        if (error) throw error
-        
-        if (data && data.length > 0) {
-          setSpots(data as SpotMapView[])
-        } else {
-          setSpots(DEMO_SPOTS)
-        }
-      } catch (err: any) {
-        console.error('Erro ao buscar spots:', err.message || err.details || err)
+  const fetchSpots = useCallback(async () => {
+    setIsLoadingSpots(true)
+    try {
+      const { getSupabaseClient } = await import('@/lib/supabase/client')
+      const supabase = getSupabaseClient()
+      
+      const { data, error } = await supabase
+        .from('spots_map_view')
+        .select('*')
+      
+      if (error) throw error
+      
+      if (data && data.length > 0) {
+        setSpots(data as SpotMapView[])
+      } else {
         setSpots(DEMO_SPOTS)
-      } finally {
-        setIsLoadingSpots(false)
       }
+    } catch (err: any) {
+      console.error('Erro ao buscar spots:', err.message || err.details || err)
+      setSpots(DEMO_SPOTS)
+    } finally {
+      setIsLoadingSpots(false)
     }
-
-    fetchSpots()
   }, [])
+
+  // Buscar spots do Supabase inicial
+  useEffect(() => {
+    fetchSpots()
+  }, [fetchSpots])
 
   // Monitorar status de conexão
   useEffect(() => {
@@ -243,27 +243,36 @@ function HomeContent() {
   // Auto-sync quando voltar online
   useEffect(() => {
     if (!isOnline || pendingSync === 0 || !user) return
+    
+    let isSubscribed = true
     const doSync = async () => {
       try {
         const { syncPendingData, getPendingCount } = await import('@/lib/offline/indexeddb')
         const { getSupabaseClient } = await import('@/lib/supabase/client')
         const supabase = getSupabaseClient()
         
+        console.log('[Sync] Iniciando sincronização em segundo plano...')
         const result = await syncPendingData(supabase, user.id)
         
-        // Sempre busca o contador real após tentar sincronizar
-        const newCount = await getPendingCount()
-        setPendingSync(newCount)
-        
+        if (!isSubscribed) return
+
         if (result.synced > 0) {
-          console.log(`[Sync] ${result.synced} item(ns) sincronizado(s)`)
+          console.log(`[Sync] ${result.synced} item(ns) sincronizado(s). Atualizando pins.`)
+          fetchSpots()
+        }
+
+        const newCount = await getPendingCount()
+        if (newCount !== pendingSync) {
+          setPendingSync(newCount)
         }
       } catch (err) {
         console.error('[Sync] Erro crítico no auto-sync:', err)
       }
     }
+    
     doSync()
-  }, [isOnline, pendingSync, user])
+    return () => { isSubscribed = false }
+  }, [isOnline, pendingSync, user, fetchSpots])
 
   const handleNewCapture = useCallback((spotId: string) => {
     setActiveSpotId(spotId)
@@ -484,7 +493,7 @@ function HomeContent() {
           initialLat={tempCoords?.lat}
           initialLng={tempCoords?.lng}
           onClose={() => { setShowSpotForm(false); setTempCoords(null); }}
-          onSuccess={() => { setShowSpotForm(false); setTempCoords(null); window.location.reload(); }}
+          onSuccess={() => { setShowSpotForm(false); setTempCoords(null); fetchSpots(); }}
         />
       )}
 
@@ -495,7 +504,7 @@ function HomeContent() {
           initialLat={tempCoords?.lat}
           initialLng={tempCoords?.lng}
           onClose={() => { setShowResortForm(false); setTempCoords(null); }}
-          onSuccess={() => { setShowResortForm(false); setTempCoords(null); window.location.reload(); }}
+          onSuccess={() => { setShowResortForm(false); setTempCoords(null); fetchSpots(); }}
         />
       )}
 

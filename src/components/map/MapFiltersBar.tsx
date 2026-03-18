@@ -59,7 +59,8 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
     filters.waterType ||
     filters.showOnlyVerified ||
     filters.showOnlyPublic ||
-    filters.showOnlyResorts
+    filters.showOnlyResorts ||
+    filters.hidePublic
 
   const resetAll = () => {
     setSpeciesSearch('')
@@ -99,7 +100,7 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
       <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         {/* Busca por espécie */}
         <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={14} color="var(--color-text-muted)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={14} color={theme === 'light' ? '#6b7280' : "var(--color-text-muted)"} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             id="filter-species"
             className="input"
@@ -113,8 +114,8 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
               paddingLeft: 32, 
               minHeight: 38, 
               fontSize: 13,
-              background: theme === 'light' ? '#f3f4f6' : undefined,
-              borderColor: theme === 'light' ? '#e5e7eb' : undefined,
+              background: theme === 'light' ? 'rgba(0,0,0,0.04)' : undefined,
+              borderColor: theme === 'light' ? 'rgba(0,0,0,0.06)' : undefined,
               color: theme === 'light' ? '#111827' : undefined,
             }}
           />
@@ -129,12 +130,15 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
             minHeight: 38,
             padding: '0 12px',
             fontSize: 13,
-            borderColor: hasActiveFilters ? 'var(--color-accent-primary)' : 'var(--color-border)',
-            color: hasActiveFilters ? 'var(--color-accent-primary)' : undefined,
             position: 'relative',
+            background: theme === 'light' ? (hasActiveFilters ? '#00d4aa15' : 'rgba(0,0,0,0.04)') : undefined,
+            color: hasActiveFilters ? '#00b38f' : (theme === 'light' ? '#374151' : 'var(--color-text-secondary)'),
+            borderColor: hasActiveFilters ? (theme === 'light' ? '#00d4aa88' : 'var(--color-accent-primary)') : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
+            borderStyle: 'solid',
+            borderWidth: 1,
           }}
         >
-          <Filter size={14} />
+          <Filter size={14} color={hasActiveFilters ? '#00b38f' : (theme === 'light' ? '#6b7280' : undefined)} />
           Filtros
           {hasActiveFilters && (
             <span style={{
@@ -172,12 +176,12 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
               padding: '4px 10px',
               borderRadius: 20,
               border: '1px solid',
-              borderColor: filters.species === sp ? 'var(--color-accent-primary)' : (theme === 'light' ? '#e5e7eb' : 'var(--color-border)'),
+              borderColor: filters.species === sp ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
               background: filters.species === sp 
                 ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)') 
-                : (theme === 'light' ? '#f9fafb' : 'transparent'),
+                : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
               color: filters.species === sp 
-                ? (theme === 'light' ? '#00b38f' : 'var(--color-accent-primary)') 
+                ? '#00b38f' 
                 : (theme === 'light' ? '#4b5563' : 'var(--color-text-muted)'),
               fontSize: 11,
               fontWeight: 600,
@@ -250,13 +254,13 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
                     borderRadius: 8,
                     border: '1px solid',
                     borderColor: isActive 
-                        ? (theme === 'light' ? '#00b38f' : 'var(--color-accent-primary)') 
-                        : (theme === 'light' ? '#e5e7eb' : 'var(--color-border)'),
+                        ? '#00d4aa88' 
+                        : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
                     background: isActive 
                         ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)') 
-                        : (theme === 'light' ? '#f9fafb' : 'transparent'),
+                        : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
                     color: isActive 
-                        ? (theme === 'light' ? '#00b38f' : 'var(--color-accent-primary)') 
+                        ? '#00b38f' 
                         : (theme === 'light' ? '#6b7280' : 'var(--color-text-secondary)'),
                     fontSize: 12,
                     fontWeight: 600,
