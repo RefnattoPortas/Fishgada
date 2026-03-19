@@ -130,7 +130,7 @@ export default function FishingMap({
 
         // Atribuição personalizada discreta
         L.control.attribution({
-          prefix: '© WikiFish | © CartoDB'
+          prefix: '© Fish-Map | © CartoDB'
         }).addTo(mapInstance)
 
         // Evento de clique no mapa
@@ -396,7 +396,7 @@ export default function FishingMap({
       {/* Legenda e Zoom Customizado */}
       {isLoaded && (
         <div 
-          className="absolute flex items-end gap-3"
+          className="absolute flex items-end gap-1.5"
           style={{ 
             bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))', 
             left: 16, 

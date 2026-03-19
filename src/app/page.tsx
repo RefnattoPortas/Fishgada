@@ -358,12 +358,12 @@ function HomeContent() {
           className={`fab-square-container ${drawerOpen ? 'drawer-open' : ''}`}
           style={{
             position: 'absolute',
-            bottom: 24,
-            right: 24,
+            bottom: 17,
+            right: 17,
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 56px)',
             gridTemplateRows: 'repeat(2, 56px)',
-            gap: 12,
+            gap: 8,
             zIndex: 900,
           }}
         >
@@ -521,7 +521,7 @@ function HomeContent() {
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="h-screen w-screen bg-dark flex items-center justify-center text-white">Carregando WikiFish...</div>}>
+    <Suspense fallback={<div className="h-screen w-screen bg-dark flex items-center justify-center text-white">Carregando Fish-Map...</div>}>
       <HomeContent />
     </Suspense>
   )

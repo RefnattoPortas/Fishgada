@@ -5,11 +5,11 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'WikiFish — Mapa de Pesca Esportiva',
+  title: 'Fish-Map — Mapa de Pesca Esportiva',
   description: 'Descubra os melhores pontos de pesca, compartilhe suas capturas e aprenda com a comunidade de pescadores esportivos.',
   keywords: 'pesca esportiva, pontos de pesca, captura, isca, setup de pesca, comunidade pescadores',
   openGraph: {
-    title: 'WikiFish',
+    title: 'Fish-Map',
     description: 'A plataforma da comunidade de pesca esportiva',
     type: 'website',
   },

@@ -5,7 +5,7 @@ import {
   X, MapPin, Fish, Award, Lock, Users, Eye, Star, Share2, 
   Navigation, Trophy, Wind, Thermometer, Clock, Camera,
   TrendingUp, BarChart3, Bell, BellOff, User, Calendar,
-  ArrowRight, Plus, Warehouse, Utensils, Wifi, Car, Phone, Anchor, Megaphone, ChevronRight
+  ArrowRight, Plus, Warehouse, Utensils, Wifi, Car, Phone, Anchor, Megaphone, ChevronRight, Heart
 } from 'lucide-react'
 import TrophyCardModal from '../social/TrophyCardModal'
 import type { SpotMapView, Capture, Setup, Profile } from '@/types/database'
@@ -25,6 +25,8 @@ interface SpotDetailsViewProps {
 type CaptureWithData = Capture & {
   profiles?: Profile
   setups?: Setup[]
+  likes_count?: number
+  is_liked_by_user?: boolean
 }
 
 const LURE_LABELS: Record<string, { label: string; emoji: string }> = {
@@ -87,13 +89,21 @@ export default function SpotDetailsView({
         .select(`
           *,
           profiles(*),
-          setups(*)
+          setups(*),
+          interactions(type, user_id)
         `)
         .eq('spot_id', spot.id)
         .order('captured_at', { ascending: false })
 
       if (error) throw error
-      setCaptures((data as any) || [])
+      
+      const hydratedData = (data as any[]).map(cap => ({
+        ...cap,
+        likes_count: cap.interactions?.filter((i: any) => i.type === 'like').length || 0,
+        is_liked_by_user: cap.interactions?.some((i: any) => i.type === 'like' && i.user_id === user?.id)
+      }))
+
+      setCaptures(hydratedData)
     } catch (err: any) {
       console.error('Erro ao buscar detalhes do ponto:', err.message || err)
       if (err.details) console.error('Detalhes:', err.details)
@@ -390,16 +400,46 @@ export default function SpotDetailsView({
           {activeTab === 'feed' && (
             <div className="grid grid-cols-2 gap-3 fade-in">
               {captures.filter(c => c.photo_url).map((cap) => (
-                <div key={cap.id} className="card overflow-hidden group">
+                <div key={cap.id} className="card overflow-hidden group relative">
                   <div className="relative aspect-square">
                     <img src={cap.photo_url!} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={cap.species} />
-                    <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-[10px] font-bold text-white truncate capitalize">{cap.species}</p>
-                      <p className="text-[9px] text-accent font-bold">
-                        {cap.weight_kg ? `${cap.weight_kg}kg` : ''} 
-                        {cap.weight_kg && cap.length_cm ? ' · ' : ''}
-                        {cap.length_cm ? `${cap.length_cm}cm` : ''}
-                      </p>
+                    
+                    {/* Botão de Like Sobreposto */}
+                    <button 
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!user) return;
+                        
+                        const supabase = getSupabaseClient();
+                        if (cap.is_liked_by_user) {
+                          // Unlike
+                          await supabase.from('interactions').delete().eq('capture_id', cap.id).eq('user_id', user.id).eq('type', 'like');
+                        } else {
+                          // Like
+                          await supabase.from('interactions').insert({ capture_id: cap.id, user_id: user.id, type: 'like' });
+                        }
+                        fetchSpotData(); // Recarregar para atualizar contagem
+                      }}
+                      className={`absolute top-2 right-2 w-8 h-8 rounded-full glass border border-white/10 flex items-center justify-center transition-all hover:scale-110 active:scale-90 ${cap.is_liked_by_user ? 'bg-rose-500/20 text-rose-500' : 'text-white/60'}`}
+                    >
+                      <Heart size={16} fill={cap.is_liked_by_user ? 'currentColor' : 'none'} />
+                    </button>
+
+                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+                      <div className="flex items-end justify-between">
+                         <div className="min-w-0">
+                           <p className="text-xs font-black text-white truncate uppercase tracking-tighter italic">{cap.species}</p>
+                           <p className="text-[10px] text-accent font-black">
+                             {cap.weight_kg ? `${cap.weight_kg}kg` : ''} 
+                             {cap.weight_kg && cap.length_cm ? ' · ' : ''}
+                             {cap.length_cm ? `${cap.length_cm}cm` : ''}
+                           </p>
+                         </div>
+                         <div className="flex items-center gap-1 text-[10px] font-black text-gray-400">
+                           <Heart size={10} className={cap.is_liked_by_user ? 'text-rose-500 fill-rose-500' : ''} />
+                           {cap.likes_count || 0}
+                         </div>
+                      </div>
                     </div>
                   </div>
                 </div>

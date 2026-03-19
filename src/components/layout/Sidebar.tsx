@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import {
   Map, Fish, BookOpen, Trophy, User, Settings,
   ChevronRight, Wifi, WifiOff, Plus, Bell, LogOut,
-  LogIn, Award, Crown, Store, Building
+  LogIn, Award, Crown, Store, Building, Menu, X
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import B2BLanding from '@/components/partners/B2BLanding'
@@ -40,6 +40,8 @@ export default function Sidebar({
   const [profile, setProfile] = useState<any>(null)
   const [isResortOwner, setIsResortOwner] = useState(false)
   const [showLanding, setShowLanding] = useState(false)
+  const [isOpenMobile, setIsOpenMobile] = useState(false)
+
 
   useEffect(() => {
     const supabase = getSupabaseClient()
@@ -95,15 +97,32 @@ export default function Sidebar({
 
   return (
     <>
+      {/* Mobile Toggle Button */}
+      <button 
+        onClick={() => setIsOpenMobile(!isOpenMobile)}
+        className="fixed top-4 left-4 z-50 md:hidden flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-dark shadow-lg shadow-accent/20 border border-accent/20"
+      >
+        {isOpenMobile ? <X size={20} /> : <Menu size={20} />}
+      </button>
+
+      {/* Backdrop for Mobile */}
+      {isOpenMobile && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-all duration-300"
+          onClick={() => setIsOpenMobile(false)}
+        />
+      )}
+
       <aside
         id="sidebar"
-        className="glass flex flex-col border-r transition-all duration-300 z-30 relative"
-      style={{
-        width: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
-        minWidth: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
-        height: '100dvh',
-      }}
-    >
+        className={`glass flex flex-col border-r transition-all duration-300 z-40 relative 
+          ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} 
+          fixed md:relative h-full`}
+        style={{
+          width: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
+          minWidth: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
+        }}
+      >
       {/* Botão de expandir (chevron) - Fora do container de scroll para ficar visível */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -140,7 +159,7 @@ export default function Sidebar({
           </div>
           {expanded && (
             <div className="fade-in overflow-hidden">
-              <p className="font-bold text-gradient" style={{ fontSize: 16, lineHeight: 1 }}>WikiFish</p>
+              <p className="font-bold text-gradient" style={{ fontSize: 16, lineHeight: 1 }}>Fish-Map</p>
               <p style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Pesca Esportiva</p>
             </div>
           )}
@@ -229,6 +248,7 @@ export default function Sidebar({
                 key={href}
                 href={href}
                 id={id}
+                onClick={() => setIsOpenMobile(false)}
                 className={`sidebar-item ${isActive ? 'active' : ''}`}
               >
                 <Icon size={20} style={{ flexShrink: 0 }} />
