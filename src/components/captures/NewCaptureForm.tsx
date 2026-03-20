@@ -177,75 +177,71 @@ export default function NewCaptureForm({
 
   const handleSave = async () => {
     if (!data.species) return
+    
+    // Inicia o estado de salvamento
     setSaving(true)
 
     const captureId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
         ? crypto.randomUUID() 
         : `offline-cap-${Date.now()}-${Math.floor(Math.random()*1000)}`
 
-    // Subir a foto pro Bucket se online (se falhar ou offline salva o Base64 na URL par n perder)
     let finalPhotoUrl = photoPreview
-
-    if (photoFile && isOnline) {
-      try {
-        const supabase = getSupabaseClient() as any
-        const fileExt = photoFile.name.split('.').pop()
-        const fileName = `${userId}_${Date.now()}.${fileExt}`
-        const { data: uploadData, error: uploadError } = await supabase.storage.from('captures').upload(fileName, photoFile)
-        
-        if (!uploadError && uploadData) {
-          const { data: { publicUrl } } = supabase.storage.from('captures').getPublicUrl(fileName)
-          finalPhotoUrl = publicUrl // Substitui Base64 pesada pelo link oficial leve
-        } else {
-          console.warn('Erro ao subir no bucket Storage (falta migrations?). Fallback Base64.', uploadError)
-        }
-      } catch (err) {
-        console.warn('Erro Storage', err)
-      }
-    }
-
-    const capturePayload = {
-      id: captureId,
-      user_id: userId,
-      spot_id: spotId || null,
-      species: data.species,
-      weight_kg: data.weight_kg ? parseFloat(data.weight_kg) : null,
-      length_cm: data.length_cm ? parseFloat(data.length_cm) : null,
-      photo_url: finalPhotoUrl,
-      captured_at: new Date().toISOString(),
-      moon_phase: data.moon_phase || null,
-      temperature_c: data.temperature_c ? parseFloat(data.temperature_c) : null,
-      weather: data.weather || null,
-      notes: data.notes || null,
-      is_public: data.is_public,
-      created_locally_at: new Date().toISOString(),
-      setup: data.lure_type ? {
-        lure_type: data.lure_type || null,
-        lure_model: data.lure_model || null,
-        lure_color: data.lure_color || null,
-        hook_size: data.hook_size || null,
-        line_lb: data.line_lb ? parseFloat(data.line_lb) : null,
-        line_type: data.line_type || null,
-      } : undefined,
-    }
-
-    console.log('[NewCaptureForm] Iniciando handleSave...', { spotId, userId, isOnline })
-    const isGuest = userId === 'guest-user'
-
-    const safeSaveCaptureOffline = async (payload: any) => {
-      console.log('[NewCaptureForm] Salvando captura offline...')
-      try {
-        await Promise.race([
-          savePendingCapture(payload),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout idb')), 5000))
-        ])
-        console.log('[NewCaptureForm] Captura salva offline com sucesso.')
-      } catch (e) {
-        console.error('[NewCaptureForm] Erro ao salvar offline:', e)
-      }
-    }
+    let capturePayload: any = null
 
     try {
+      // 1. Subir a foto pro Bucket se online (com timeout)
+      if (photoFile && isOnline) {
+        console.log('[NewCaptureForm] Subindo foto para o Storage...')
+        try {
+          const supabase = getSupabaseClient() as any
+          const fileExt = photoFile.name.split('.').pop()
+          const fileName = `${userId}_${Date.now()}.${fileExt}`
+          
+          // Race entre upload e timeout de 15 segundos (fotos podem ser grandes)
+          const uploadPromise = supabase.storage.from('captures').upload(fileName, photoFile)
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout storage')), 15000))
+          
+          const { data: uploadData, error: uploadError } = await Promise.race([uploadPromise, timeoutPromise]) as any
+          
+          if (!uploadError && uploadData) {
+            const { data: { publicUrl } } = supabase.storage.from('captures').getPublicUrl(fileName)
+            finalPhotoUrl = publicUrl 
+            console.log('[NewCaptureForm] Foto subida com sucesso:', finalPhotoUrl)
+          } else {
+            console.warn('Erro Storage ou Timeout. Mantendo Base64 local.', uploadError)
+          }
+        } catch (err) {
+          console.warn('Erro/Timeout no Storage. Prosseguindo com Base64.', err)
+        }
+      }
+
+      capturePayload = {
+        id: captureId,
+        user_id: userId,
+        spot_id: spotId || null,
+        species: data.species,
+        weight_kg: data.weight_kg ? parseFloat(data.weight_kg) : null,
+        length_cm: data.length_cm ? parseFloat(data.length_cm) : null,
+        photo_url: finalPhotoUrl,
+        captured_at: new Date().toISOString(),
+        moon_phase: data.moon_phase || null,
+        temperature_c: data.temperature_c ? parseFloat(data.temperature_c) : null,
+        weather: data.weather || null,
+        notes: data.notes || null,
+        is_public: data.is_public,
+        created_locally_at: new Date().toISOString(),
+        setup: data.lure_type ? {
+          lure_type: data.lure_type || null,
+          lure_model: data.lure_model || null,
+          lure_color: data.lure_color || null,
+          hook_size: data.hook_size || null,
+          line_lb: data.line_lb ? parseFloat(data.line_lb) : null,
+          line_type: data.line_type || null,
+        } : undefined,
+      }
+
+      const isGuest = userId === 'guest-user'
+
       if (isOnline && !isGuest) {
         console.log('[NewCaptureForm] Enviando para o Supabase...')
         const supabase = getSupabaseClient() as any
@@ -260,14 +256,14 @@ export default function NewCaptureForm({
             photo_url: finalPhotoUrl,
             is_trophy: data.is_trophy,
             was_released: data.was_released,
+            is_public: data.is_public,
+            notes: data.notes,
             moon_phase: data.moon_phase || null,
             temperature_c: data.temperature_c ? parseFloat(data.temperature_c) : null,
             weather: data.weather || null,
             water_clarity: data.water_clarity || null,
             time_of_day: data.time_of_day || null,
             wind_speed_kmh: data.wind_speed_kmh ? parseInt(data.wind_speed_kmh) : null,
-            notes: data.notes || null,
-            is_public: data.is_public,
           }]).select().single(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout supabase')), 10000))
         ]) as any
@@ -289,22 +285,37 @@ export default function NewCaptureForm({
           })
         }
       } else {
-        await safeSaveCaptureOffline(capturePayload)
+        // Offline ou Guest
+        await savePendingCapture(capturePayload)
       }
 
-      console.log('[NewCaptureForm] Fluxo concluído com sucesso.')
+      console.log('[NewCaptureForm] Sucesso!')
       setSuccess(true)
       setTimeout(() => {
         onSuccess?.()
         onClose()
         window.location.reload()
       }, 1500)
+
     } catch (err: any) {
-      console.error('[NewCaptureForm] Catch disparado:', err)
-      await safeSaveCaptureOffline(capturePayload)
-      setSuccess(true)
-      setTimeout(() => { onSuccess?.(); onClose() }, 1500)
+      console.error('[NewCaptureForm] Erro crítico no salvamento:', err)
+      // Fallback offline total para não perder o dado caso a rede caia no meio
+      try {
+        await savePendingCapture(capturePayload)
+        setSuccess(true) // Mostra sucesso mesmo salvando localmente
+        setTimeout(() => { 
+          onSuccess?.()
+          onClose()
+          window.location.reload()
+        }, 1500)
+      } catch (e2) {
+        alert('Erro ao salvar captura. Verifique sua conexão ou espaço no disco.')
+        setSaving(false)
+      }
     } finally {
+      // IMPORTANTE: Garantir que o spinner pare se não tiver tido sucesso imediato
+      // mas como o router vai dar refresh, o estado vai resetar de qualquer forma.
+      // Se deu erro e não entrou no recover, paramos o load.
       setSaving(false)
     }
   }
