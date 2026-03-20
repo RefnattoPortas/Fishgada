@@ -100,7 +100,7 @@ export default function Sidebar({
       {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsOpenMobile(!isOpenMobile)}
-        className="fixed top-4 left-4 z-50 md:hidden flex h-10 w-10 items-center justify-center rounded-xl glass text-white shadow-lg border border-white/10"
+        className="fixed top-4 left-4 z-[100] md:hidden flex h-12 w-12 items-center justify-center rounded-xl bg-[#0f1829] text-white shadow-2xl border border-white/10 hover:bg-white/5 transition-colors"
       >
         {isOpenMobile ? <X size={20} /> : <Menu size={20} />}
       </button>
