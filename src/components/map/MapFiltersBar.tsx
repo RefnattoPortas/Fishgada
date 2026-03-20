@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Filter, X, ChevronDown, Search, Menu } from 'lucide-react'
 import { ALL_SPECIES as SPECIES_COMMON } from '@/lib/data/species'
 
@@ -46,6 +46,12 @@ interface MapFiltersBarProps {
 export default function MapFiltersBar({ filters, onChange, spotCount, user, theme = 'light' }: MapFiltersBarProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [speciesSearch, setSpeciesSearch] = useState(filters.species)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
 
   const set = (key: keyof MapFilters, val: any) =>
     onChange({ ...filters, [key]: val })
@@ -108,7 +114,7 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
           <input
             id="filter-species"
             className="input"
-            list="filter-species-list"
+            list={isMounted ? "filter-species-list" : undefined}
             placeholder="Buscar espécie..."
             value={speciesSearch}
             onChange={e => {
@@ -124,11 +130,13 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
               color: theme === 'light' ? '#111827' : undefined,
             }}
           />
-          <datalist id="filter-species-list">
-            {SPECIES_COMMON.map(sp => (
-              <option key={sp} value={sp} />
-            ))}
-          </datalist>
+          {isMounted && (
+            <datalist id="filter-species-list">
+              {[...SPECIES_COMMON].sort().map(sp => (
+                <option key={sp} value={sp} />
+              ))}
+            </datalist>
+          )}
         </div>
 
         {/* Toggle filtros avançados */}
