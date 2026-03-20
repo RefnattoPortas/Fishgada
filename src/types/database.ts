@@ -318,6 +318,48 @@ export interface Database {
         Insert: { id?: string; tournament_id: string; user_id: string }
         Update: { id?: string; tournament_id?: string; user_id?: string }
       }
+      species: {
+        Row: {
+          id: string
+          nome_comum: string
+          nome_cientifico: string
+          habitat: string
+          tamanho_recorde_cm: number | null
+          peso_recorde_kg: number | null
+          isca_favorita: string | null
+          dica_pro: string | null
+          tamanho_minimo_cm: number | null
+          imagem_url: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nome_comum: string
+          nome_cientifico: string
+          habitat: string
+          tamanho_recorde_cm?: number | null
+          peso_recorde_kg?: number | null
+          isca_favorita?: string | null
+          dica_pro?: string | null
+          tamanho_minimo_cm?: number | null
+          imagem_url?: string | null
+          is_active?: boolean
+        }
+        Update: {
+          id?: string
+          nome_comum?: string
+          nome_cientifico?: string
+          habitat?: string
+          tamanho_recorde_cm?: number | null
+          peso_recorde_kg?: number | null
+          isca_favorita?: string | null
+          dica_pro?: string | null
+          tamanho_minimo_cm?: number | null
+          imagem_url?: string | null
+          is_active?: boolean
+        }
+      }
     }
     Views: {
       spots_map_view: {
@@ -359,6 +401,25 @@ export interface Database {
           website: string | null
         }
       }
+      user_species_album: {
+        Row: {
+          species_id: string
+          nome_comum: string
+          nome_cientifico: string
+          habitat: string
+          tamanho_recorde_cm: number | null
+          peso_recorde_kg: number | null
+          isca_favorita: string | null
+          dica_pro: string | null
+          tamanho_minimo_cm: number | null
+          imagem_url: string | null
+          user_id: string | null
+          total_capturas: number
+          maior_tamanho_capturado_cm: number | null
+          maior_peso_capturado_kg: number | null
+          ultima_captura: string | null
+        }
+      }
     }
     Functions: { [_: string]: any }
     Enums: { [_: string]: any }
@@ -372,3 +433,5 @@ export type Capture = Database['public']['Tables']['captures']['Row']
 export type Setup = Database['public']['Tables']['setups']['Row']
 export type Interaction = Database['public']['Tables']['interactions']['Row']
 export type SpotMapView = Database['public']['Views']['spots_map_view']['Row']
+export type Species = Database['public']['Tables']['species']['Row']
+export type SpeciesAlbum = Database['public']['Views']['user_species_album']['Row']

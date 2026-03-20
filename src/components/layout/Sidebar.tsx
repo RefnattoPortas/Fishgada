@@ -18,7 +18,8 @@ import { getRankByLevel } from '@/lib/utils/ranks'
 const navItems = [
   { href: '/',           icon: Map,      label: 'Mapa',           id: 'nav-map' },
   { href: '/captures',   icon: Fish,     label: 'Minhas Capturas', id: 'nav-captures' },
-  { href: '/leaderboard', icon: Award,   label: 'Leaderboard',    id: 'nav-leaderboard' },
+  { href: '/especies',   icon: Award,    label: 'Catálogo / Álbum', id: 'nav-species' },
+  { href: '/leaderboard', icon: Crown,   label: 'Leaderboard',    id: 'nav-leaderboard' },
   { href: '/events',      icon: Trophy,  label: 'Torneios & Eventos', id: 'nav-tournaments' },
   { href: '/logbook',    icon: BookOpen, label: 'Diário de Pesca', id: 'nav-logbook' },
 ]

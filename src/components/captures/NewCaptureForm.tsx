@@ -106,6 +106,9 @@ export default function NewCaptureForm({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [showFullPhoto, setShowFullPhoto] = useState(false)
 
+  // Espécies Catálogo
+  const [catalogSpecies, setCatalogSpecies] = useState<{nome_comum: string, tamanho_recorde_cm: number | null}[]>([])
+
   const [data, setData] = useState<FormData>({
     species: '',
     weight_kg: '',
@@ -127,6 +130,34 @@ export default function NewCaptureForm({
     line_lb: '',
     line_type: '',
   })
+
+  // Autofetch do catálogo para autocomplete e sugestão de troféu
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      try {
+        const supabase = getSupabaseClient() as any
+        const { data: list, error } = await supabase.from('species').select('nome_comum, tamanho_recorde_cm')
+        if (list && !error) setCatalogSpecies(list)
+      } catch (e) {
+        console.warn('View de espécies ou conexão falhou', e)
+      }
+    }
+    if (isOnline) fetchCatalog()
+  }, [isOnline])
+
+  // Lógica de Troféu Automático (75% do recorde sul-americano = Troféu)
+  useEffect(() => {
+    if (data.species && data.length_cm) {
+      const sp = catalogSpecies.find(s => s.nome_comum.toLowerCase() === data.species.toLowerCase())
+      if (sp && sp.tamanho_recorde_cm) {
+        if (parseFloat(data.length_cm) >= (sp.tamanho_recorde_cm * 0.75)) {
+          if (!data.is_trophy) {
+             setData(prev => ({ ...prev, is_trophy: true }))
+          }
+        }
+      }
+    }
+  }, [data.species, data.length_cm, catalogSpecies])
 
   const set = (key: keyof FormData, val: any) =>
     setData(prev => ({ ...prev, [key]: val }))
@@ -421,11 +452,24 @@ export default function NewCaptureForm({
                 <input
                   id="input-species"
                   className="input"
-                  placeholder="Ex: Tucunaré, Dourado, Traíra..."
+                  list="species-list"
+                  placeholder="Ex: Tucunaré Açu, Dourado, Pirarucu..."
                   value={data.species}
                   onChange={e => set('species', e.target.value)}
                   autoFocus={!photoPreview}
                 />
+                <datalist id="species-list">
+                  {catalogSpecies.map(sp => (
+                    <option key={sp.nome_comum} value={sp.nome_comum} />
+                  ))}
+                </datalist>
+                
+                {/* Alerta de Troféu Automático */}
+                {data.is_trophy && data.length_cm && catalogSpecies.find(s => s.nome_comum.toLowerCase() === data.species.toLowerCase()) && (
+                  <div className="mt-2 text-xs font-bold text-accent bg-accent/10 p-2 rounded-lg flex items-center gap-2 border border-accent/20 fade-in">
+                    🏆 Wow! Esse tamanho é nível Troféu para esta espécie!
+                  </div>
+                )}
               </div>
 
               {/* Peso + Comprimento */}
