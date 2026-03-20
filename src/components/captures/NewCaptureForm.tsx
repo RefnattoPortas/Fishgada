@@ -104,6 +104,7 @@ export default function NewCaptureForm({
   // Foto states
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [showFullPhoto, setShowFullPhoto] = useState(false)
 
   const [data, setData] = useState<FormData>({
     species: '',
@@ -366,10 +367,11 @@ export default function NewCaptureForm({
               {/* Foto via Celular / Câmera */}
               <div>
                 <label className="label"><Camera size={12} /> Foto da Captura</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                
+                {!photoPreview ? (
                   <label 
                     className="btn-secondary" 
-                    style={{ flex: 1, padding: '14px', cursor: 'pointer', borderStyle: 'dashed', background: photoPreview ? 'var(--color-bg-elevated)' : 'transparent', position: 'relative', overflow: 'hidden' }}
+                    style={{ width: '100%', padding: '16px', cursor: 'pointer', borderStyle: 'dashed', position: 'relative', overflow: 'hidden', display: 'flex' }}
                   >
                     <input 
                       type="file" 
@@ -378,25 +380,39 @@ export default function NewCaptureForm({
                       onChange={handlePhotoSelect} 
                       style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', left: 0, top: 0, cursor: 'pointer' }}
                     />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      {photoPreview ? (
-                        <>
-                          <img src={photoPreview} alt="Preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--color-border-strong)' }} />
-                          <span style={{ fontSize: 12, color: 'var(--color-accent-primary)', fontWeight: 600 }}>Trocar foto</span>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ padding: 10, background: 'var(--color-bg-secondary)', borderRadius: '50%' }}>
-                            <Camera size={24} color="var(--color-text-secondary)" />
-                          </div>
-                          <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                            Toque para tirar foto
-                          </span>
-                        </>
-                      )}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+                      <div style={{ padding: 12, background: 'var(--color-bg-secondary)', borderRadius: '50%' }}>
+                        <Camera size={26} color="var(--color-text-secondary)" />
+                      </div>
+                      <span style={{ fontSize: 14, color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                        Tocar para abrir Câmera/Galeria
+                      </span>
                     </div>
                   </label>
-                </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 12, background: 'var(--color-bg-elevated)', borderRadius: 12, border: '1px solid var(--color-border)' }}>
+                    {/* Miniatura Clicável */}
+                    <div 
+                      onClick={() => setShowFullPhoto(true)}
+                      style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden', borderRadius: 8, border: '2px solid var(--color-accent-primary)' }}
+                    >
+                      <img src={photoPreview} alt="Preview" style={{ width: 84, height: 84, objectFit: 'cover', display: 'block' }} />
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <span style={{ fontSize: 24 }}>🔍</span>
+                      </div>
+                    </div>
+                    {/* Botões de Ação */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                       <label className="btn-secondary" style={{ padding: '10px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0, cursor: 'pointer' }}>
+                         <input type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+                         🔄 Trocar
+                       </label>
+                       <button onClick={() => {setPhotoPreview(null); setPhotoFile(null)}} className="btn-secondary" style={{ padding: '10px', fontSize: 13, borderColor: '#ef444455', color: '#ef4444' }}>
+                         🗑️ Remover
+                       </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Espécie */}
@@ -702,6 +718,26 @@ export default function NewCaptureForm({
           )}
         </div>
       </div>
+
+      {/* Expanded Photo Preview Overlay */}
+      {showFullPhoto && photoPreview && (
+        <div 
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-md fade-in"
+          onClick={() => setShowFullPhoto(false)}
+        >
+          <button 
+            style={{ position: 'absolute', top: 20, right: 20, width: 44, height: 44, background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={(e) => { e.stopPropagation(); setShowFullPhoto(false); }}
+          >
+             <X color="#fff" size={24} />
+          </button>
+          <img 
+            src={photoPreview} 
+            alt="Foto Ampliada" 
+            style={{ maxWidth: '95vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }} 
+          />
+        </div>
+      )}
     </div>
   )
 }
