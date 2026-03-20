@@ -100,7 +100,7 @@ export default function Sidebar({
       {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsOpenMobile(!isOpenMobile)}
-        className="fixed top-4 left-4 z-50 md:hidden flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-dark shadow-lg shadow-accent/20 border border-accent/20"
+        className="fixed top-4 left-4 z-50 md:hidden flex h-10 w-10 items-center justify-center rounded-xl glass text-white shadow-lg border border-white/10"
       >
         {isOpenMobile ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -115,9 +115,9 @@ export default function Sidebar({
 
       <aside
         id="sidebar"
-        className={`glass flex flex-col border-r transition-all duration-300 z-40 relative 
+        className={`glass flex flex-col border-r border-white/5 transition-transform duration-300 z-40
           ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} 
-          fixed md:relative h-full`}
+          fixed inset-y-0 left-0 md:relative h-full`}
         style={{
           width: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
           minWidth: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
@@ -126,16 +126,13 @@ export default function Sidebar({
       {/* Botão de expandir (chevron) - Fora do container de scroll para ficar visível */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="absolute"
+        className="absolute hidden md:flex items-center justify-center cursor-pointer z-10 transition-transform duration-300"
         style={{
           right: -12, top: 28,
           width: 24, height: 24,
           background: 'var(--color-bg-elevated)',
           border: '1px solid var(--color-border-strong)',
           borderRadius: 6,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', zIndex: 10,
-          transition: 'transform 0.3s ease',
           transform: expanded ? 'rotate(180deg)' : 'none',
         }}
         title={expanded ? 'Recolher' : 'Expandir'}

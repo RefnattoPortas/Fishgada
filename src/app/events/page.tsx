@@ -70,7 +70,9 @@ export default function EventsPage() {
       .order('start_at', { ascending: true })
 
     if (error) {
-       console.error('Erro ao buscar torneios:', error.message || error)
+       if (error.code !== '42P01' && error.code !== 'PGRST204' && error.code !== 'PGRST205') {
+         console.error('Erro ao buscar torneios:', error.message || error)
+       }
        setTournaments([])
     } else {
        setTournaments(data as any)
@@ -83,7 +85,9 @@ export default function EventsPage() {
       .select('tournament_id')
       .eq('user_id', userId)
 
-    if (error) console.error(error)
+    if (error) {
+       if (error.code !== '42P01' && error.code !== 'PGRST204' && error.code !== 'PGRST205') console.error(error)
+    }
     else setParticipatingIds(data.map((p: any) => p.tournament_id))
   }
 

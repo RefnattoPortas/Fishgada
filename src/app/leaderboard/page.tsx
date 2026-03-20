@@ -59,12 +59,9 @@ export default function LeaderboardPage() {
         const { data, error } = await query
 
         if (error) {
-          console.error('Erro detalhado ao buscar cidades:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          })
+          if (error.code !== '42703') {
+             console.error('Erro detalhado ao buscar cidades:', error)
+          }
           return
         }
         
@@ -133,15 +130,13 @@ export default function LeaderboardPage() {
       const { data: users, error: userError } = await query
 
       if (userError) {
-        console.error('Erro detalhado do Supabase (Leaderboard):', {
-          message: userError.message,
-          details: userError.details,
-          hint: userError.hint,
-          code: userError.code
-        })
-        // Erro comum: coluna total_likes não existe no banco ainda
-        if (userError.message?.includes('total_likes') || userError.message?.includes('column "total_likes" does not exist')) {
-          setError('A coluna "total_likes" (ou colunas de localização) ainda não foi criada no banco de dados. Por favor, execute a migração SQL #007 no console do Supabase.')
+        if (userError.code !== '42703') {
+           console.error('Erro detalhado do Supabase (Leaderboard):', userError)
+        }
+        
+        // Erro comum: coluna total_likes, city, ou outras colunas de engajamento ainda não existem
+        if (userError.code === '42703' || userError.message?.includes('total_likes') || userError.message?.includes('column "total_likes" does not exist')) {
+          setError('As colunas de Rank/Localização ainda não foram criadas no banco de dados. Por favor, execute a migração SQL #007_leaderboard_engagement no console do Supabase.')
         } else {
           setError(`Erro ao buscar dados: ${userError.message || 'Verifique o console para mais detalhes.'}`)
         }
@@ -186,9 +181,9 @@ export default function LeaderboardPage() {
                   onChange={(e) => setCountry(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none cursor-pointer hover:bg-white/10 transition-all font-bold"
                 >
-                  <option value="Brasil">Brasil</option>
-                  <option value="Argentina">Argentina</option>
-                  <option value="Paraguai">Paraguai</option>
+                  <option className="text-black" value="Brasil">Brasil</option>
+                  <option className="text-black" value="Argentina">Argentina</option>
+                  <option className="text-black" value="Paraguai">Paraguai</option>
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
@@ -204,8 +199,8 @@ export default function LeaderboardPage() {
                   onChange={(e) => setState(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none cursor-pointer hover:bg-white/10 transition-all font-bold"
                 >
-                  <option value="">Todos</option>
-                  {BRAZILIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  <option className="text-black" value="">Todos</option>
+                  {BRAZILIAN_STATES.map(s => <option className="text-black" key={s} value={s}>{s}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
@@ -221,8 +216,8 @@ export default function LeaderboardPage() {
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/40 appearance-none cursor-pointer hover:bg-white/10 transition-all font-bold disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <option value="">{cities.length === 0 ? 'Sem cidades' : 'Todas as cidades'}</option>
-                  {cities.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option className="text-black" value="">{cities.length === 0 ? 'Sem cidades' : 'Todas as cidades'}</option>
+                  {cities.map(c => <option className="text-black" key={c} value={c}>{c}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
