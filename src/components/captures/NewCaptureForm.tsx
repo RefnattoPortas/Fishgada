@@ -297,6 +297,7 @@ export default function NewCaptureForm({
       setTimeout(() => {
         onSuccess?.()
         onClose()
+        window.location.reload()
       }, 1500)
     } catch (err: any) {
       console.error('[NewCaptureForm] Catch disparado:', err)

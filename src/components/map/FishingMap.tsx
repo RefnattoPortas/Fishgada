@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Navigation } from 'lucide-react'
 import type { SpotMapView } from '@/types/database'
 import type { Map as LeafletMap, LatLngExpression } from 'leaflet'
 
@@ -367,16 +368,31 @@ export default function FishingMap({
         marker.on('click', () => {
           onSpotSelect?.(spot)
         })
-
-        markersRef.current.push(marker)
+      markersRef.current.push(marker)
       }
     }
 
     renderMarkers()
   }, [spots, isLoaded, selectedSpotId, filterLureType, onSpotSelect])
 
+  const handleFindMe = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude
+          const lng = pos.coords.longitude
+          if (leafletMapRef.current) {
+            leafletMapRef.current.flyTo([lat, lng], 15)
+          }
+        },
+        () => alert('Não foi possível obter sua localização. Por favor, verifique as permissões de GPS.'),
+        { enableHighAccuracy: true, timeout: 5000 }
+      )
+    }
+  }
+
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" style={{ isolation: 'isolate' }}>
       {/* Mapa */}
       <div ref={mapRef} className="w-full h-full" id="fishing-map" />
 
@@ -395,12 +411,12 @@ export default function FishingMap({
 
       {/* Legenda e Zoom Customizado */}
       {isLoaded && (
-        <div 
+        <div
           className="absolute flex items-end gap-1.5"
-          style={{ 
-            bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))', 
-            left: 16, 
-            zIndex: 900 
+          style={{
+            bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+            left: 16,
+            zIndex: 900
           }}
         >
           {/* Container Coluna: Legenda em baixo, Info acima */}
@@ -430,13 +446,22 @@ export default function FishingMap({
 
           {/* Zoom Controls (à direita da legenda) */}
           <div className="flex flex-col gap-2">
-             <button 
+             <button
+              onClick={handleFindMe}
+              className="w-10 h-10 glass rounded-xl flex items-center justify-center text-accent hover:bg-white/10 transition-all border border-accent/30 shadow-[0_0_15px_rgba(0,183,168,0.2)]"
+              title="Encontrar minha localização"
+             >
+                {/* Assuming 'Navigation' component is imported or defined elsewhere */}
+                {/* If not, you might need to import it or replace with an SVG/icon library */}
+                <Navigation size={18} fill="currentColor" />
+             </button>
+             <button
               onClick={() => leafletMapRef.current?.zoomIn()}
               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
              >
                 +
              </button>
-             <button 
+             <button
               onClick={() => leafletMapRef.current?.zoomOut()}
               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
              >

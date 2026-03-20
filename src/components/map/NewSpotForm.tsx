@@ -103,6 +103,7 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
       setTimeout(() => {
         onSuccess?.()
         onClose()
+        window.location.reload()
       }, 1500)
     } catch (error: any) {
       console.error('[NewSpotForm] Catch disparado. Fallback para offline:', error)
@@ -110,7 +111,11 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
       await safeSaveOffline(spotPayload)
       console.log('[NewSpotForm] Fallback offline concluído. Exibindo sucesso (local).')
       setSuccess(true)
-      setTimeout(() => { onSuccess?.(); onClose() }, 1500)
+      setTimeout(() => { 
+        onSuccess?.(); 
+        onClose(); 
+        window.location.reload(); 
+      }, 1500)
     } finally {
       setLoading(false)
     }
