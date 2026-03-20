@@ -2,11 +2,8 @@
 
 import { useState } from 'react'
 import { Filter, X, ChevronDown, Search, Menu } from 'lucide-react'
+import { ALL_SPECIES as SPECIES_COMMON } from '@/lib/data/species'
 
-const SPECIES_COMMON = [
-  'Tucunaré', 'Dourado', 'Traíra', 'Piranha', 'Pintado', 'Pirarucu',
-  'Tilápia', 'Tambaqui', 'Corvina', 'Robalo', 'Bagre', 'Pirá',
-]
 
 const LURE_TYPES = [
   { value: '', label: 'Todos os tipos' },
@@ -111,6 +108,7 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
           <input
             id="filter-species"
             className="input"
+            list="filter-species-list"
             placeholder="Buscar espécie..."
             value={speciesSearch}
             onChange={e => {
@@ -126,6 +124,11 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
               color: theme === 'light' ? '#111827' : undefined,
             }}
           />
+          <datalist id="filter-species-list">
+            {SPECIES_COMMON.map(sp => (
+              <option key={sp} value={sp} />
+            ))}
+          </datalist>
         </div>
 
         {/* Toggle filtros avançados */}
@@ -175,31 +178,35 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
 
       {/* Atalhos de espécies comuns */}
       <div style={{ paddingInline: 14, paddingBottom: 8, display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {SPECIES_COMMON.map(sp => (
-          <button
-            key={sp}
-            onClick={() => { setSpeciesSearch(sp); set('species', sp) }}
-            style={{
-              padding: '4px 10px',
-              borderRadius: 20,
-              border: '1px solid',
-              borderColor: filters.species === sp ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
-              background: filters.species === sp 
-                ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)') 
-                : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
-              color: filters.species === sp 
-                ? '#00b38f' 
-                : (theme === 'light' ? '#4b5563' : 'var(--color-text-muted)'),
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {sp}
-          </button>
-        ))}
+        {SPECIES_COMMON.slice(0, 15).map(sp => {
+           // Strip the scientific name if present in the chip for brevity
+           const label = sp.includes('(') ? sp.split(' (')[0] : sp
+           return (
+            <button
+              key={sp}
+              onClick={() => { setSpeciesSearch(sp); set('species', sp) }}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 20,
+                border: '1px solid',
+                borderColor: filters.species === sp ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
+                background: filters.species === sp 
+                  ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)') 
+                  : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
+                color: filters.species === sp 
+                  ? '#00b38f' 
+                  : (theme === 'light' ? '#4b5563' : 'var(--color-text-muted)'),
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Filtros avançados expandíveis */}

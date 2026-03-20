@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { savePendingCapture } from '@/lib/offline/indexeddb'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { ALL_SPECIES } from '@/lib/data/species'
 
 // Opções de selects
 const LURE_TYPES = [
@@ -459,8 +460,8 @@ export default function NewCaptureForm({
                   autoFocus={!photoPreview}
                 />
                 <datalist id="species-list">
-                  {catalogSpecies.map(sp => (
-                    <option key={sp.nome_comum} value={sp.nome_comum} />
+                  {ALL_SPECIES.sort().map(sp => (
+                    <option key={sp} value={sp} />
                   ))}
                 </datalist>
                 
