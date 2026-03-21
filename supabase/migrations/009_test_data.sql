@@ -43,7 +43,6 @@ BEGIN
     DELETE FROM public.setups;
     DELETE FROM public.captures;
     DELETE FROM public.spots;
-    DELETE FROM public.fishing_resorts;
 
     -- 3. Gerar 30 SPOTS PUBLICOS (Todos públicos para garantir visibilidade)
     FOR v_i IN 1..30 LOOP
@@ -52,8 +51,6 @@ BEGIN
             user_id, 
             title, 
             description, 
-            lat, 
-            lng, 
             privacy_level, 
             water_type, 
             location,
@@ -64,11 +61,9 @@ BEGIN
             v_user_id,
             'Ponto Público ' || v_i,
             'Local de teste para pesca de ' || v_species[floor(random() * 15 + 1)],
-            -5.0 - (random() * 25.0), -- Latitude variada Brasil
-            -35.0 - (random() * 35.0), -- Longitude variada Brasil
             'public',
             v_water_types[floor(random() * 4 + 1)],
-            ST_SetSRID(ST_MakePoint(-35.0 - (random() * 35.0), -5.0 - (random() * 25.0)), 4326),
+            ST_SetSRID(ST_MakePoint(-35.0 - (random() * 35.0), -5.0 - (random() * 25.0)), 4326)::geography,
             true
         ) RETURNING id INTO v_spot_id;
 
@@ -98,34 +93,43 @@ BEGIN
         END LOOP;
     END LOOP;
 
-    -- 4. Gerar 10 PESQUEIROS FICTÍCIOS
-    FOR v_i IN 1..10 LOOP
-        INSERT INTO public.fishing_resorts (
-            id,
-            owner_id,
-            name,
-            description,
-            address,
-            phone,
-            lat,
-            lng,
-            location,
-            is_active,
-            subscription_tier
-        ) VALUES (
-            gen_random_uuid(),
-            v_user_id,
-            'Pesqueiro do Renatinho ' || v_i,
-            'Melhor estrutura da região para pesca esportiva.',
-            'Estrada da Pesca, Km ' || v_i,
-            '(11) 99999-000' || v_i,
-            -15.0 - (v_i * 0.5), -- Espalhando um pouco
-            -47.0 - (v_i * 0.5),
-            ST_SetSRID(ST_MakePoint(-47.0 - (v_i * 0.5), -15.0 - (v_i * 0.5)), 4326),
-            true,
-            'partner'
-        );
-    END LOOP;
+    -- 4. Gerar 10 PESQUEIROS FICTÍCIOS (se a tabela existir)
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fishing_resorts') THEN
+        FOR v_i IN 1..10 LOOP
+            -- Primeiro cria o Spot para o Pesqueiro
+            INSERT INTO public.spots (
+                id, user_id, title, description, privacy_level, water_type, location, is_active
+            ) VALUES (
+                gen_random_uuid(),
+                v_user_id,
+                'Pesqueiro do Renatinho ' || v_i,
+                'Estrutura completa para sua pescaria.',
+                'public',
+                'lake',
+                ST_SetSRID(ST_MakePoint(-46.6 - (v_i * 0.1), -23.5 - (v_i * 0.1)), 4326)::geography,
+                true
+            ) RETURNING id INTO v_spot_id;
+
+            -- Depois cria o Resort vinculado ao Spot
+            INSERT INTO public.fishing_resorts (
+                spot_id,
+                phone,
+                website,
+                is_partner,
+                main_species,
+                infrastructure
+            ) VALUES (
+                v_spot_id,
+                '(11) 99999-000' || v_i,
+                'www.pesqueiro' || v_i || '.com.br',
+                true,
+                ARRAY['Tambaqui', 'Pirarara', 'Tilápia'],
+                '{"restaurante": true, "banheiros": true, "wi_fi": true, "pousada": false}'::jsonb
+            );
+        END LOOP;
+    ELSE
+        RAISE NOTICE 'Tabela fishing_resorts não encontrada. Ignorando criação de pesqueiros...';
+    END IF;
 
     -- 5. Mais 10 capturas avulsas para completar 100
     FOR v_i IN 1..10 LOOP
