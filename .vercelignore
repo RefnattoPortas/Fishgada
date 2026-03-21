@@ -1,0 +1,11 @@
+# Exclude Supabase-specific files from Vercel deployment
+supabase/
+.env*
+!.env.example
+.git
+.gitignore
+.next
+node_modules
+README.md
+RELATORIO_ESTRATEGICO_FISHMAP.md
+scripts/
