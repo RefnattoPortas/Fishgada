@@ -39,9 +39,12 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
     setLoading(true)
     try {
       const supabase = getSupabaseClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data } = await supabase.auth.getSession()
       
-      if (!session) {
+      // Verificação segura da sessão
+      const session = data?.session
+      
+      if (!session || typeof session === 'string') {
         alert('Você precisa estar logado para assinar.')
         setLoading(false)
         return
@@ -66,12 +69,12 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
         }
       )
 
-      const data = await response.json()
+      const dataJson = await response.json()
 
-      if (data.url) {
-        window.location.href = data.url
+      if (dataJson.url) {
+        window.location.href = dataJson.url
       } else {
-        alert('Erro ao iniciar pagamento: ' + (data.error || 'Tente novamente.'))
+        alert('Erro ao iniciar pagamento: ' + (dataJson.error || 'Tente novamente.'))
       }
     } catch (err: any) {
       console.error('Erro no checkout:', err)
@@ -85,17 +88,18 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
   const currentPrice = billingCycle === 'monthly' ? currentPlan.monthly : currentPlan.annual
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="relative w-full max-w-lg glass-elevated border-2 border-accent/30 rounded-[60px] shadow-[0_0_120px_rgba(0,212,170,0.15)] overflow-hidden">
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="relative w-full max-w-lg glass-elevated border-2 border-accent/30 rounded-[40px] md:rounded-[60px] shadow-[0_0_120px_rgba(0,212,170,0.15)] overflow-hidden flex flex-col max-h-[90vh]">
         
         <button 
           onClick={onClose}
-          className="absolute top-10 right-10 text-gray-500 hover:text-white transition-colors z-20"
+          className="absolute top-6 right-6 md:top-10 md:right-10 text-gray-500 hover:text-white transition-colors z-30 bg-[#0a0f1a]/50 p-1 rounded-full border border-white/5"
         >
-          <X size={28} />
+          <X size={24} />
         </button>
 
-        <div className="p-12 text-center space-y-10">
+        {/* Scrollable Content */}
+        <div className="p-8 md:p-12 text-center space-y-8 md:space-y-10 overflow-y-auto custom-scrollbar overflow-x-hidden">
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
                <div className="w-24 h-24 rounded-[40%] bg-accent flex items-center justify-center text-dark shadow-2xl shadow-accent/40 animate-pulse">

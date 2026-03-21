@@ -64,10 +64,13 @@ export default function Sidebar({
 
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
-        checkResortOwner(session.user.id)
+      // Proteção: Algumas versões da sessão no localStorage podem vir como string
+      const safeSession = (session && typeof session === 'object') ? session : null
+      
+      setUser(safeSession?.user ?? null)
+      if (safeSession?.user) {
+        fetchProfile(safeSession.user.id)
+        checkResortOwner(safeSession.user.id)
       } else {
         setProfile(null)
         setIsResortOwner(false)
