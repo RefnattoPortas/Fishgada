@@ -43,16 +43,21 @@ Deno.serve(async (req: Request) => {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.user_id;
         const plan = session.metadata?.plan || "pro";
+        const interval = session.metadata?.interval || "month";
 
         if (!userId) {
           console.error("❌ user_id não encontrado nos metadata da sessão");
           break;
         }
 
-        console.log(`🎣 Processando pagamento para user: ${userId}, plano: ${plan}`);
+        console.log(`🎣 Processando pagamento para user: ${userId}, plano: ${plan}, intervalo: ${interval}`);
 
         // Determinar o tier baseado no plano
         const tier = plan === "partner" ? "partner" : "pro";
+
+        // Calcular data de expiração baseada no intervalo
+        const days = interval === "year" ? 366 : 31;
+        const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 
         // Atualizar o perfil do usuário com o novo tier
         const { error: profileError } = await supabaseAdmin

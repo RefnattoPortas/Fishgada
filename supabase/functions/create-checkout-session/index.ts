@@ -79,6 +79,7 @@ Deno.serve(async (req: Request) => {
 
     // 5. Criar sessão de checkout
     const origin = req.headers.get("origin") || "https://fish-map-ten.vercel.app";
+    const interval = priceId.includes('ANNUAL') ? 'year' : 'month';
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -94,11 +95,13 @@ Deno.serve(async (req: Request) => {
       metadata: {
         user_id: user.id,
         plan: plan || "pro",
+        interval: interval
       },
       subscription_data: {
         metadata: {
           user_id: user.id,
           plan: plan || "pro",
+          interval: interval
         },
       },
     });

@@ -11,19 +11,19 @@ interface PaywallModalProps {
 }
 
 // ======================================================
-// PLANOS — Substitua pelos seus Price IDs reais do Stripe
+// ESTRATÉGIA DE PRECIFICAÇÃO FISHMAP
 // ======================================================
 const PLANS = {
   pro: {
     name: 'Fish Pro',
-    priceId: 'price_PRO_PLACEHOLDER', // TODO: Substituir pelo Price ID real
-    price: 'R$ 19,90/mês',
+    monthly: { id: 'price_PRO_MONTHLY', price: 19.90, label: 'R$ 19,90/mês', discount: undefined as string | undefined },
+    annual: { id: 'price_PRO_ANNUAL', price: 149.90, label: 'R$ 149,90/ano', discount: '40% OFF' as string | undefined },
     plan: 'pro',
   },
   partner: {
     name: 'Fish Partner',
-    priceId: 'price_PARTNER_PLACEHOLDER', // TODO: Substituir pelo Price ID real
-    price: 'R$ 49,90/mês',
+    monthly: { id: 'price_PARTNER_MONTHLY', price: 99.00, label: 'R$ 99,00/mês', discount: undefined as string | undefined },
+    annual: { id: 'price_PARTNER_ANNUAL', price: 890.00, label: 'R$ 890,00/ano', discount: '2 meses Grátis' as string | undefined },
     plan: 'partner',
   },
 }
@@ -31,6 +31,7 @@ const PLANS = {
 export default function PaywallModal({ isOpen, onClose, featureName }: PaywallModalProps) {
   const [loading, setLoading] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<'pro' | 'partner'>('pro')
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual')
 
   if (!isOpen) return null
 
@@ -46,7 +47,8 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
         return
       }
 
-      const plan = PLANS[selectedPlan]
+      const planData = PLANS[selectedPlan]
+      const cycleData = billingCycle === 'monthly' ? planData.monthly : planData.annual
 
       // Chamar a Edge Function
       const response = await fetch(
@@ -58,8 +60,8 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            priceId: plan.priceId,
-            plan: plan.plan,
+            priceId: cycleData.id,
+            plan: planData.plan,
           }),
         }
       )
@@ -67,7 +69,6 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
       const data = await response.json()
 
       if (data.url) {
-        // Redirecionar para o Stripe Checkout
         window.location.href = data.url
       } else {
         alert('Erro ao iniciar pagamento: ' + (data.error || 'Tente novamente.'))
@@ -80,21 +81,21 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
     }
   }
 
+  const currentPlan = PLANS[selectedPlan]
+  const currentPrice = billingCycle === 'monthly' ? currentPlan.monthly : currentPlan.annual
+
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="relative w-full max-w-lg glass-elevated border-2 border-accent/30 rounded-[50px] shadow-[0_0_100px_rgba(0,212,170,0.2)] overflow-hidden">
-        
-        {/* Decorative Gold Pulse */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-accent to-transparent" />
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="relative w-full max-w-lg glass-elevated border-2 border-accent/30 rounded-[60px] shadow-[0_0_120px_rgba(0,212,170,0.15)] overflow-hidden">
         
         <button 
           onClick={onClose}
-          className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors"
+          className="absolute top-10 right-10 text-gray-500 hover:text-white transition-colors z-20"
         >
-          <X size={24} />
+          <X size={28} />
         </button>
 
-        <div className="p-12 text-center space-y-8">
+        <div className="p-12 text-center space-y-10">
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
                <div className="w-24 h-24 rounded-[40%] bg-accent flex items-center justify-center text-dark shadow-2xl shadow-accent/40 animate-pulse">
@@ -106,37 +107,67 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
             </div>
             
             <div className="space-y-2">
-               <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white">
-                  Torne-se uma <span className="text-accent">Lenda</span>
+               <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white leading-none">
+                  Alcance o <span className="text-accent underline decoration-4 underline-offset-4">Topo</span>
                </h2>
                <p className="text-gray-400 font-medium">
-                  {featureName ? `Acesse o ${featureName} e outros benefícios exclusivos.` : 'Domine as águas com o WikiFish PRO.'}
+                  Domine as águas com inteligência e ferramentas exclusivas.
                </p>
             </div>
           </div>
 
-          {/* Seleção de Plano */}
-          <div className="grid grid-cols-2 gap-3">
-            {([['pro', 'Fish Pro', 'R$ 19,90', '/mês'], ['partner', 'Fish Partner', 'R$ 49,90', '/mês']] as const).map(([key, name, price, period]) => (
-              <button
-                key={key}
-                onClick={() => setSelectedPlan(key)}
-                className={`p-5 rounded-3xl border-2 transition-all text-left ${
-                  selectedPlan === key 
-                    ? 'border-accent bg-accent/5 shadow-lg shadow-accent/10' 
-                    : 'border-white/10 hover:border-white/20'
-                }`}
-              >
-                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{name}</p>
-                <p className="text-2xl font-black text-white">{price}<span className="text-xs text-gray-500">{period}</span></p>
-                {key === 'partner' && (
-                  <p className="text-[9px] text-purple-400 font-bold mt-1">+ Pin Roxo + Torneios</p>
-                )}
-              </button>
-            ))}
+          {/* Toggle de Faturamento */}
+          <div className="flex justify-center">
+            <div className="bg-white/5 p-1.5 rounded-3xl border border-white/5 flex gap-1">
+               <button 
+                 onClick={() => setBillingCycle('monthly')}
+                 className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === 'monthly' ? 'bg-white/10 text-white shadow-xl' : 'text-gray-500'}`}
+               >
+                 Mensal
+               </button>
+               <button 
+                 onClick={() => setBillingCycle('annual')}
+                 className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all relative ${billingCycle === 'annual' ? 'bg-accent text-dark shadow-xl' : 'text-gray-500'}`}
+               >
+                 Anual
+                 <div className="absolute -top-3 -right-2 px-2 py-0.5 bg-indigo-500 text-white text-[8px] rounded-full ring-2 ring-[#0a0f1a]">Economize</div>
+               </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 text-left">
+          {/* Seleção de Plano */}
+          <div className="grid grid-cols-2 gap-4">
+            {(['pro', 'partner'] as const).map((key) => {
+              const p = PLANS[key]
+              const priceData = billingCycle === 'monthly' ? p.monthly : p.annual
+              const active = selectedPlan === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedPlan(key)}
+                  className={`p-6 rounded-[32px] border-2 transition-all text-left relative overflow-hidden group ${
+                    active 
+                      ? 'border-accent bg-accent/5 ring-1 ring-accent/20 shadow-2xl shadow-accent/10' 
+                      : 'border-white/5 hover:border-white/10 glass'
+                  }`}
+                >
+                  <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${active ? 'text-accent' : 'text-gray-500'}`}>{p.name}</p>
+                  <p className="text-2xl font-black text-white">{priceData.label.split('/')[0]}</p>
+                  <p className="text-[10px] text-gray-500 font-bold">/{billingCycle === 'monthly' ? 'mês' : 'ano'}</p>
+                  
+                  {billingCycle === 'annual' && priceData.discount && (
+                    <div className="mt-3 inline-block px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black text-accent uppercase tracking-wider group-hover:bg-accent/10 transition-colors">
+                      {priceData.discount}
+                    </div>
+                  )}
+
+                  {active && <CheckCircle2 className="absolute top-4 right-4 text-accent" size={16} />}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 pt-4">
              {[
                 { title: 'Heatmap de Atividade', desc: 'Veja onde as feras estão batendo agora.', icon: Zap },
                 { title: 'Offline Pro Mode', desc: 'Acesse o mapa e registre capturas sem sinal.', icon: Download },
@@ -168,7 +199,7 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
                    Conectando ao Gateway...
                  </>
                ) : (
-                 <>Assinar {PLANS[selectedPlan].name} — {PLANS[selectedPlan].price}</>
+                 <>Assinar {currentPlan.name} — {currentPrice.label.split('/')[0]}</>
                )}
              </button>
              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">
