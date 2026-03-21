@@ -189,7 +189,9 @@ export default function Sidebar({
                   style={{ 
                     width: expanded ? 48 : 36, 
                     height: expanded ? 48 : 36, 
-                    border: profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'partner'
+                    border: profile?.subscription_tier === 'partner'
+                        ? '2px solid #a855f7'
+                        : profile?.subscription_tier === 'pro'
                         ? '2px solid #fbbf24'
                         : '2px solid var(--color-accent-primary)' 
                   }}
@@ -202,9 +204,14 @@ export default function Sidebar({
                     </div>
                   )}
                 </div>
-                {(profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'partner') && (
+                {profile?.subscription_tier === 'pro' && (
                   <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center border-2 border-[#0a0f1a] shadow-lg animate-bounce z-10">
                     <Crown size={10} className="text-dark fill-dark" />
+                  </div>
+                )}
+                {profile?.subscription_tier === 'partner' && (
+                  <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center border-2 border-[#0a0f1a] shadow-lg animate-bounce z-10">
+                    <Crown size={10} className="text-white fill-white" />
                   </div>
                 )}
                 <div 
@@ -217,18 +224,33 @@ export default function Sidebar({
               
               {expanded && (
                 <div className="fade-in flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <userRank.icon size={12} style={{ color: userRank.color }} />
-                    <span 
-                      className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap"
-                      style={{ color: userRank.color }}
-                    >
-                      {userRank.title}
-                    </span>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <userRank.icon size={12} style={{ color: userRank.color }} />
+                      <span 
+                        className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap"
+                        style={{ color: userRank.color }}
+                      >
+                        {userRank.title}
+                      </span>
+                    </div>
+                    
+                    {/* Badge de Assinatura */}
+                    {profile?.subscription_tier === 'pro' && (
+                      <span className="text-[8px] font-black bg-amber-500 text-dark px-1.5 py-0.5 rounded-md shadow-lg shadow-amber-500/20 animate-pulse">PRO</span>
+                    )}
+                    {profile?.subscription_tier === 'partner' && (
+                      <span className="text-[8px] font-black bg-purple-500 text-white px-1.5 py-0.5 rounded-md shadow-lg shadow-purple-500/20 animate-pulse">PARCEIRO</span>
+                    )}
+                    {(!profile?.subscription_tier || profile?.subscription_tier === 'free') && (
+                      <Link href="/profile?tab=billing" className="text-[8px] font-black text-accent hover:underline uppercase tracking-tighter">Virar Pro</Link>
+                    )}
                   </div>
-                  <p className="font-bold text-white text-sm truncate">
+
+                  <p className="font-bold text-white text-sm truncate leading-tight">
                     {user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}
                   </p>
+                  
                   <div className="flex items-center justify-between mt-1 mb-1">
                     <span className="text-[10px] text-accent font-bold uppercase tracking-tighter">XP {userXP}</span>
                     <span className="text-[10px] text-gray-500 font-bold">{xpForNextLevel - (userXP % 500)} para L{userLevel + 1}</span>
