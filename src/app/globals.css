@@ -222,6 +222,12 @@
     box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
   }
 
+  /* Garante que os itens do dropdown sejam legíveis em todos os sistemas */
+  .select option, select option {
+    background-color: #ffffff;
+    color: #000000;
+  }
+
   /* ── BADGES ─────────────────────────────────────────── */
   .badge {
     display: inline-flex;

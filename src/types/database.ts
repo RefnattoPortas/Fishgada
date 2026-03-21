@@ -399,6 +399,7 @@ export interface Database {
           resort_main_species: string | null
           instagram: string | null
           website: string | null
+          searchable_species: string | null
         }
       }
       user_species_album: {

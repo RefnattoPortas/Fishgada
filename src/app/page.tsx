@@ -163,7 +163,22 @@ function HomeContent() {
   const filteredSpots = useMemo(() => {
     let result = spots
     if (filters.species) {
-      result = result.filter(s => s.title.toLowerCase().includes(filters.species.toLowerCase()))
+      let sp = filters.species.toLowerCase()
+      // Remove o nome científico
+      if (sp.includes('(')) sp = sp.split('(')[0].trim()
+      
+      // Divide por '/' para casos como 'Pintado/Surubim'
+      const searchTerms = sp.split('/').map(t => t.trim())
+      
+      result = result.filter(s => {
+        const target = (
+          s.title + ' ' + 
+          ((s as any).searchable_species || '') + ' ' + 
+          ((s as any).resort_main_species || '')
+        ).toLowerCase()
+        
+        return searchTerms.some(term => target.includes(term))
+      })
     }
     if (filters.lureType) {
       result = result.filter(s => s.latest_lure_type === filters.lureType)

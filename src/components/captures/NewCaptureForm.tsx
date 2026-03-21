@@ -181,9 +181,17 @@ export default function NewCaptureForm({
     // Inicia o estado de salvamento
     setSaving(true)
 
-    const captureId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-        ? crypto.randomUUID() 
-        : `offline-cap-${Date.now()}-${Math.floor(Math.random()*1000)}`
+    // Função auxiliar para garantir UUID v4 válido mesmo sem crypto.randomUUID
+    const generateUUID = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        const v = c === 'x' ? r : (r & 0x3) | 0x8
+        return v.toString(16)
+      })
+    }
+
+    const captureId = generateUUID()
 
     let finalPhotoUrl = photoPreview
     let capturePayload: any = null
@@ -248,6 +256,7 @@ export default function NewCaptureForm({
         
         const result = await Promise.race([
           supabase.from('captures').insert([{
+            id: captureId, // Passamos o ID gerado localmente para garantir idempotência
             user_id: userId,
             spot_id: spotId || null,
             species: data.species,

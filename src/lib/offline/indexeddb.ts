@@ -178,6 +178,7 @@ export async function syncPendingData(supabaseClient: any, userId: string) {
   for (const spot of pendingSpots) {
     try {
       const { data: newSpot, error } = await supabaseClient.from('spots').insert({
+        id: spot.id, // ID local como UUID para idempotência
         user_id: userId,
         title: spot.title,
         description: spot.description,
@@ -198,8 +199,14 @@ export async function syncPendingData(supabaseClient: any, userId: string) {
       
       synced++
     } catch (err: any) {
-      console.error('[Sync] Erro ao sincronizar spot:', spot.id, err.message || err)
-      errors++
+      if (err.code === '23505') {
+        console.log('[Sync] Spot já existe no Supabase (duplicação evitada):', spot.id)
+        await markSpotSynced(spot.id, spot.id)
+        synced++
+      } else {
+        console.error('[Sync] Erro ao sincronizar spot:', spot.id, err.message || err)
+        errors++
+      }
     }
   }
 
@@ -248,6 +255,7 @@ export async function syncPendingData(supabaseClient: any, userId: string) {
       const { data: captureData, error: captureError } = await supabaseClient
         .from('captures')
         .insert({
+          id: capture.id,
           user_id: userId,
           spot_id: realSpotId, // null se orphaned — FK aceita null (ON DELETE SET NULL)
           species: capture.species,
@@ -278,8 +286,14 @@ export async function syncPendingData(supabaseClient: any, userId: string) {
       await markCaptureSynced(capture.id)
       synced++
     } catch (err: any) {
-      console.error('[Sync] Erro ao sincronizar captura:', capture.id, err.message || err)
-      errors++
+      if (err.code === '23505') {
+        console.log('[Sync] Captura já existe no Supabase (duplicação evitada):', capture.id)
+        await markCaptureSynced(capture.id)
+        synced++
+      } else {
+        console.error('[Sync] Erro ao sincronizar captura:', capture.id, err.message || err)
+        errors++
+      }
     }
   }
 

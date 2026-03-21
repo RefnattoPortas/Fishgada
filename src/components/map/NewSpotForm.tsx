@@ -58,11 +58,18 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
   const handleSave = async () => {
     if (!data.title) return
     setLoading(true)
-
-    // Fallback seguro de UUID caso navegador não defina crypto (como http na rede local sem SSL)
-    const secureId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-        ? crypto.randomUUID() 
-        : `offline-${Date.now()}-${Math.floor(Math.random()*1000)}`
+    
+    // Função auxiliar para garantir UUID v4 válido mesmo sem crypto.randomUUID
+    const generateUUID = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        const v = c === 'x' ? r : (r & 0x3) | 0x8
+        return v.toString(16)
+      })
+    }
+    
+    const secureId = generateUUID()
 
     const spotPayload = {
       id: secureId,
@@ -102,6 +109,7 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
         // Timeout para a chamada do Supabase para evitar hang eterno
         const result = await Promise.race([
           supabase.from('spots').insert([{
+            id: secureId, // Passamos o ID gerado localmente para garantir idempotência
             user_id: userId,
             title: data.title,
             description: data.description || null,

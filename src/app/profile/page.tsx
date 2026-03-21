@@ -296,9 +296,13 @@ export default function ProfilePage() {
                               </div>
                               <div>
                                 <label className="text-[10px] font-black uppercase text-gray-500 block mb-1">UF</label>
-                                <select value={editForm.state} onChange={e => setEditForm({...editForm, state: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-sm text-white">
-                                  <option value="">UF</option>
-                                  {BRAZILIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                <select 
+                                  value={editForm.state} 
+                                  onChange={e => setEditForm({...editForm, state: e.target.value})} 
+                                  className="select w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-sm text-white"
+                                >
+                                  <option value="" className="text-black">UF</option>
+                                  {BRAZILIAN_STATES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
                                 </select>
                               </div>
                            </div>
