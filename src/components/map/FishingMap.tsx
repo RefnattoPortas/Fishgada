@@ -268,7 +268,7 @@ export default function FishingMap({
         const isPartner = (spot as any).is_resort_partner
         const pinEmoji = isResort ? '🏡' : '🎣'
         const baseColor = isPartner ? '#a855f7' : (isSelected ? privacyColor : 'var(--color-bg-card, #121e30)')
-        const borderColor = isPartner ? '#a855f7' : (isResort ? 'var(--color-accent-primary)' : privacyColor)
+        const borderColor = (isResort || isPartner) ? '#a855f7' : privacyColor
         
         const icon = L.divIcon({
           className: '',
