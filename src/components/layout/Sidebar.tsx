@@ -320,41 +320,28 @@ export default function Sidebar({
             )}
           </div>
 
-          {/* Botão de Anunciar Pesqueiro (Somente se não tiver um e estiver logado) */}
+          {/* Área Comercial / Pesqueiros */}
           {user && (
-            profile?.subscription_tier === 'partner' || profile?.subscription_tier === 'admin' ? (
-              <Link 
-                href="/resort-admin" 
-                className={`sidebar-item group ${pathname === '/resort-admin' ? 'active' : ''}`}
-                style={{ 
-                  background: 'linear-gradient(to right, rgba(0, 212, 170, 0.05), transparent)',
-                  border: '1px solid rgba(0, 212, 170, 0.1)',
-                  marginBottom: 8
-                }}
-              >
-                 <Settings size={18} className="text-accent" />
-                 {expanded && (
-                   <span className="fade-in text-xs font-black uppercase text-accent">Meu Painel Admin</span>
-                 )}
-              </Link>
-            ) : (
-              <button 
-                onClick={() => setShowLanding(true)}
-                className="sidebar-item group"
-                style={{ 
-                  background: 'rgba(0, 212, 170, 0.03)',
-                  border: '1px solid rgba(0, 212, 170, 0.4)',
-                  boxShadow: '0 0 10px rgba(0, 212, 170, 0.1)',
-                  marginBottom: 8,
-                  textAlign: 'left'
-                }}
-              >
-                 <Store size={18} className="text-accent group-hover:scale-110 transition-transform" />
-                 {expanded && (
-                   <span className="fade-in text-xs font-black uppercase text-accent tracking-tighter">Anunciar Pesqueiro</span>
-                 )}
-              </button>
-            )
+            <Link 
+              href={isResortOwner ? '/resort-admin' : '/profile?tab=business'} 
+              onClick={() => setIsOpenMobile(false)}
+              className={`sidebar-item group ${pathname === '/resort-admin' ? 'active' : ''}`}
+              style={{ 
+                background: 'rgba(0, 212, 170, 0.03)',
+                border: '1px solid rgba(0, 212, 170, 0.2)',
+                marginBottom: 8
+              }}
+            >
+              <Store size={18} className="text-accent group-hover:scale-110 transition-transform" />
+              {expanded && (
+                <div className="flex flex-col">
+                  <span className="fade-in text-xs font-black uppercase text-accent tracking-tighter">
+                    {isResortOwner ? 'Administração' : 'Meu Pesqueiro'}
+                  </span>
+                  <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Negócios</span>
+                </div>
+              )}
+            </Link>
           )}
 
           {/* Settings */}

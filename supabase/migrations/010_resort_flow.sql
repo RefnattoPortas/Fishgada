@@ -1,7 +1,9 @@
 -- Refinamento do Fluxo de Negócios para Pesqueiros (v1.3)
 -- 1. ADICIONAR COLUNAS NECESSÁRIAS na tabela fishing_resorts
 ALTER TABLE public.fishing_resorts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.fishing_resorts ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES public.auth.users(id);
+ALTER TABLE public.fishing_resorts ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.fishing_resorts ADD COLUMN IF NOT EXISTS active_highlight TEXT;
+ALTER TABLE public.fishing_resorts ADD COLUMN IF NOT EXISTS notice_board TEXT;
 
 -- 2. ATUALIZAR VIEW DE MAPA (spots_map_view)
 -- A lógica: 
