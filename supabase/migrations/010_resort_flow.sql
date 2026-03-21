@@ -49,3 +49,34 @@ WHERE
         fr.id IS NULL -- Aparece se não for pesqueiro
         OR fr.is_active = TRUE -- SÓ aparece se for pesqueiro ATIVO
     );
+
+-- 3. AJUSTAR RLS (Row Level Security) para permitir que usuários Free registrem pesqueiros
+-- Permitir INSERT para qualquer usuário autenticado em spots
+CREATE POLICY "Users can create their own spots"
+ON public.spots
+FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+-- Permitir INSERT para qualquer usuário autenticado em fishing_resorts
+CREATE POLICY "Users can create their own resorts"
+ON public.fishing_resorts
+FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = owner_id);
+
+-- Permitir UPDATE apenas para o dono (ou admin)
+CREATE POLICY "Owners can update their own resorts"
+ON public.fishing_resorts
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = owner_id)
+WITH CHECK (auth.uid() = owner_id);
+
+-- Permitir SELECT público para resorts ATIVOS
+-- Pessoas podem ver no mapa apenas os ativos
+CREATE POLICY "Public can see active resorts"
+ON public.fishing_resorts
+FOR SELECT
+TO public
+USING (is_active = TRUE OR auth.uid() = owner_id);
