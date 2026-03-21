@@ -44,6 +44,7 @@ SELECT
     fr.id IS NOT NULL AS is_resort,
     fr.is_partner     AS is_resort_partner,
     fr.infrastructure AS resort_infrastructure,
+    fr.prices         AS resort_prices,
     fr.active_highlight AS resort_active_highlight,
     fr.is_active      AS resort_is_active, -- Mantemos a coluna caso o front precise saber
     fr.photos         AS resort_photos

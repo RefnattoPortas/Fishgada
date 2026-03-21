@@ -192,14 +192,29 @@ export default function SpotDetailsView({
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header Section */}
-        <div className="relative h-64 flex-shrink-0">
-          <img 
-            src={spot.photo_url || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=1000'} 
-            className="w-full h-full object-cover"
-            alt={spot.title}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1a] via-transparent to-transparent" />
+        {/* Header Section / Photo Carousel */}
+        <div className="relative h-64 flex-shrink-0 bg-dark overflow-hidden group">
+          {spot.is_resort && (spot as any).resort_photos && (spot as any).resort_photos.length > 0 ? (
+            <div className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+              {(spot as any).resort_photos.map((url: string, i: number) => (
+                <div key={i} className="min-w-full h-full snap-center relative">
+                  <img src={url} className="w-full h-full object-cover" alt={`${spot.title} ${i+1}`} />
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                     {(spot as any).resort_photos.map((_: any, dotIdx: number) => (
+                       <div key={dotIdx} className={`w-1.5 h-1.5 rounded-full ${i === dotIdx ? 'bg-accent' : 'bg-white/30'}`} />
+                     ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <img 
+              src={spot.photo_url || 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=1000'} 
+              className="w-full h-full object-cover"
+              alt={spot.title}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1a] via-transparent to-transparent pointer-events-none" />
           
           <button 
             onClick={onClose}
@@ -260,7 +275,7 @@ export default function SpotDetailsView({
 
         {/* Tabs Navigation */}
         <div className="px-6 mt-6">
-          <div className="flex gap-4 p-1 rounded-xl bg-white/5 border border-white/10">
+          <div className="flex gap-2 p-1 rounded-xl bg-white/5 border border-white/10 overflow-x-auto scrollbar-hide">
             {[
               ...(spot.is_resort ? [{ id: 'infra', label: 'Infra', icon: Warehouse }] : []),
               { id: 'insights', label: 'Insights', icon: BarChart3 },
@@ -270,13 +285,13 @@ export default function SpotDetailsView({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                className={`flex-shrink-0 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                   activeTab === tab.id 
                     ? 'bg-accent text-dark shadow-lg shadow-accent/20' 
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-gray-500 hover:text-white'
                 }`}
               >
-                <tab.icon size={14} />
+                <tab.icon size={12} className={activeTab === tab.id ? 'animate-bounce' : ''} />
                 {tab.label}
               </button>
             ))}
@@ -284,7 +299,7 @@ export default function SpotDetailsView({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 pb-24 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 py-6 pb-40 custom-scrollbar">
           
           {/* TAB: INSIGHTS */}
           {activeTab === 'insights' && (
@@ -536,7 +551,7 @@ export default function SpotDetailsView({
                     { key: 'aluguel_equipamento', label: 'Aluguel Equip.', icon: Anchor },
                     { key: 'estacionamento', label: 'Estacionamento', icon: Car },
                   ].map((item) => {
-                    const infra = (spot.resort_infrastructure as any) || {}
+                    const infra = (spot as any).resort_infrastructure || {}
                     const available = infra[item.key]
                     return (
                       <div key={item.key} className={`card p-4 flex items-center gap-3 ${available ? 'bg-accent/5 border-accent/20' : 'opacity-40 grayscale'}`}>
@@ -649,6 +664,13 @@ export default function SpotDetailsView({
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.1);
           border-radius: 10px;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
         @keyframes grow {
           from { width: 0; }
