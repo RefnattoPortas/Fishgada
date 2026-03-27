@@ -6,6 +6,7 @@ import { SpeciesAlbum } from '@/types/database'
 import { Fish, MapPin, Scale, ChevronLeft, Info, Trophy, Link as LinkIcon, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import Sidebar from '@/components/layout/Sidebar'
 
 export default function SpeciesCatalogPage() {
   const [species, setSpecies] = useState<SpeciesAlbum[]>([])
@@ -98,9 +99,21 @@ export default function SpeciesCatalogPage() {
   const displaySpecies = species.length > 0 ? species : []
 
   return (
-    <div className="flex flex-col min-h-screen app-bg text-white pb-32">
-      {/* HEADER */}
-      <div className="sticky top-0 z-40 glass-elevated px-4 py-4 flex items-center justify-between border-b border-white/5">
+    <div 
+      id="app-shell"
+      style={{
+        display: 'flex',
+        width: '100vw',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: 'var(--color-bg-primary)',
+      }}
+    >
+      <Sidebar />
+
+      <main className="flex-1 flex flex-col h-full overflow-y-auto app-bg text-white pb-32">
+        {/* HEADER */}
+        <div className="sticky top-0 z-40 bg-[#060a12]/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft size={24} />
@@ -308,6 +321,7 @@ export default function SpeciesCatalogPage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   )
 }

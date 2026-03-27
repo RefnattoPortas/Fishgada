@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import {
   Map, Fish, BookOpen, Trophy, User, Settings,
   ChevronRight, Wifi, WifiOff, Plus, Bell, LogOut,
-  LogIn, Award, Crown, Store, Building, Menu, X
+  LogIn, Award, Crown, Store, Building, Menu, X, Compass
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import B2BLanding from '@/components/partners/B2BLanding'
@@ -17,6 +17,7 @@ import { getRankByLevel } from '@/lib/utils/ranks'
 
 const navItems = [
   { href: '/',           icon: Map,      label: 'Mapa',           id: 'nav-map' },
+  { href: '/explore',    icon: Compass,  label: 'Explorar Locais',id: 'nav-explore' },
   { href: '/captures',   icon: Fish,     label: 'Minhas Capturas', id: 'nav-captures' },
   { href: '/especies',   icon: Award,    label: 'Catálogo / Álbum', id: 'nav-species' },
   { href: '/leaderboard', icon: Crown,   label: 'Leaderboard',    id: 'nav-leaderboard' },
