@@ -15,11 +15,12 @@ export default function WelcomeOverlay({ onClose }: WelcomeOverlayProps) {
     setLoading(true)
     try {
       const supabase = getSupabaseClient()
+      const untypedSupabase = supabase as any
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        await supabase
+        await untypedSupabase
           .from('profiles')
-          .update({ is_first_login: false } as any)
+          .update({ is_first_login: false })
           .eq('id', user.id)
       }
       onClose()
