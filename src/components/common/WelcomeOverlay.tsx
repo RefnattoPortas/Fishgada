@@ -19,7 +19,7 @@ export default function WelcomeOverlay({ onClose }: WelcomeOverlayProps) {
       if (user) {
         await supabase
           .from('profiles')
-          .update({ is_first_login: false })
+          .update({ is_first_login: false } as any)
           .eq('id', user.id)
       }
       onClose()
