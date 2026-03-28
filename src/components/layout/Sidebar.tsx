@@ -20,7 +20,7 @@ const navItems = [
   { href: '/explore',    icon: Compass,  label: 'Explorar Locais',id: 'nav-explore' },
   { href: '/captures',   icon: Fish,     label: 'Minhas Capturas', id: 'nav-captures' },
   { href: '/especies',   icon: Award,    label: 'Catálogo / Álbum', id: 'nav-species' },
-  { href: '/leaderboard', icon: Crown,   label: 'Leaderboard',    id: 'nav-leaderboard' },
+  { href: '/ranking',     icon: Crown,   label: 'Ranking',        id: 'nav-ranking' },
   { href: '/events',      icon: Trophy,  label: 'Torneios & Eventos', id: 'nav-tournaments' },
   { href: '/logbook',    icon: BookOpen, label: 'Diário de Pesca', id: 'nav-logbook' },
 ]

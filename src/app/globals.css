@@ -301,6 +301,15 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
   }
 
+  .mobile-header-padding {
+    padding-left: 1rem !important; /* 16px */
+  }
+  @media (max-width: 768px) {
+    .mobile-header-padding {
+      padding-left: 74px !important; /* 16px center + 48px button + 10px user padding */
+    }
+  }
+
   /* ── SPINNER ──────────────────────────────────────── */
   .spinner {
     width: 24px;

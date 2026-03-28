@@ -56,7 +56,7 @@ export default function CapturesPage() {
         <div className="max-w-6xl mx-auto space-y-10 fade-in">
           
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mobile-header-padding">
             <div>
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-cyan-500/10 mb-4 border border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)] group transition-all hover:bg-cyan-500/20">
                 <Fish className="w-7 h-7 text-cyan-400 group-hover:scale-110 transition-transform" />
@@ -173,7 +173,7 @@ export default function CapturesPage() {
                       </div>
                     )}
 
-                    <div className="mt-auto pt-2">
+                    <div className="mt-auto pt-2 flex flex-col gap-2">
                        <button 
                          onClick={() => setSelectedSpotForTrophy(capture.spots)}
                          className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors flex items-center justify-center gap-2"
@@ -181,6 +181,19 @@ export default function CapturesPage() {
                          <Trophy size={14} className="text-amber-500" />
                          Gerar Cartão Digital
                        </button>
+
+                       {capture.photo_url && (
+                         <button 
+                           onClick={() => {
+                             localStorage.setItem(`album_highlight_${capture.species}`, capture.id)
+                             alert('Esta foto será exibida no seu álbum!')
+                           }}
+                           className="w-full py-2 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-accent/20"
+                         >
+                           <ImageIcon size={12} />
+                           Usar no Álbum
+                         </button>
+                       )}
                     </div>
                   </div>
                 </div>

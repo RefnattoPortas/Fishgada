@@ -481,7 +481,10 @@ export default function NewCaptureForm({
                   autoFocus={!photoPreview}
                 />
                 <datalist id="species-list">
-                  {[...ALL_SPECIES].sort().map(sp => (
+                  {(catalogSpecies.length > 0 
+                    ? catalogSpecies.map(s => s.nome_comum) 
+                    : ALL_SPECIES.map(s => s.split(' (')[0])
+                  ).sort().map(sp => (
                     <option key={sp} value={sp} />
                   ))}
                 </datalist>

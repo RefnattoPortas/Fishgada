@@ -35,21 +35,41 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+  const [referencePoint, setReferencePoint] = useState<[number, number] | null>(null)
   const [locationEnabled, setLocationEnabled] = useState(false)
+  const [maxDistance, setMaxDistance] = useState(100)
+  const [profile, setProfile] = useState<any>(null)
+  const [isPro, setIsPro] = useState(false)
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      const supabase = getSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single() as any
+        setProfile(data)
+        setIsPro(data?.subscription_tier === 'pro' || data?.subscription_tier === 'partner')
+      }
+    }
+    fetchProfile()
+
     // Tentar pegar localização do usuário primeiro, depois carrega os spots
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserLocation([pos.coords.latitude, pos.coords.longitude])
+          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+          setUserLocation(coords)
+          setReferencePoint(coords)
           setLocationEnabled(true)
-          fetchData([pos.coords.latitude, pos.coords.longitude])
+          fetchData(coords)
         },
         (err) => {
           console.warn('Localização negada ou falhou', err)
           setLocationEnabled(false)
-          fetchData(null)
+          // Default to a central point if unavailable (e.g. Sâo Paulo/Rio)
+          const defaultCoords: [number, number] = [-23.5505, -46.6333]
+          setReferencePoint(defaultCoords)
+          fetchData(defaultCoords)
         },
         { timeout: 5000, enableHighAccuracy: true }
       )
@@ -58,7 +78,7 @@ export default function ExplorePage() {
     }
   }, [])
 
-  const fetchData = async (location: [number, number] | null) => {
+  const fetchData = async (ref: [number, number] | null) => {
     setLoading(true)
     try {
       const supabase = getSupabaseClient()
@@ -70,15 +90,16 @@ export default function ExplorePage() {
 
       let finalSpots = data as (SpotMapView & { distance_km?: number })[]
       
-      // Calculate distances if we have location
-      if (location) {
+      // Calculate distances if we have a reference point
+      if (ref) {
         finalSpots = finalSpots.map(s => ({
           ...s,
-          distance_km: calculateDistance(location[0], location[1], s.exact_lat || s.display_lat, s.exact_lng || s.display_lng)
+          distance_km: calculateDistance(ref[0], ref[1], s.exact_lat || s.display_lat, s.exact_lng || s.display_lng)
         }))
         
-        // Ordenar do mais proximo ao mais distante
-        finalSpots.sort((a, b) => (a.distance_km || 0) - (b.distance_km || 0))
+        // Filter by 100km limit by default (or current maxDistance)
+        // But the user said "o limite de exibição deve ser 100km realmente"
+        // so any card > 100km should probably be hidden.
       }
 
       setSpots(finalSpots)
@@ -89,29 +110,45 @@ export default function ExplorePage() {
     }
   }
 
-  // Filtragem
+  // Filtragem final
   const filteredSpots = useMemo(() => {
-    if (!searchQuery) return spots
-    
-    const query = searchQuery.toLowerCase()
-    
-    return spots.filter(spot => {
-      const titleMatch = spot.title?.toLowerCase().includes(query)
-      const descMatch = spot.description?.toLowerCase().includes(query)
-      
-      // Verifica se alguma espécie no pesqueiro (se for partner) bate com a pesquisa
-      let speciesMatch = false
-      if (spot.resort_main_species) {
-        // Se for uma string
-        if (typeof spot.resort_main_species === 'string') {
+    let result = spots
+
+    // 1. Filtro de Distância (Sempre limite real de 100km)
+    if (referencePoint) {
+      result = result.filter(s => (s.distance_km || 0) <= maxDistance)
+      // Ordenar do mais proximo ao mais distante
+      result.sort((a, b) => (a.distance_km || 0) - (b.distance_km || 0))
+    }
+
+    // 2. Filtro de Texto
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(spot => {
+        const titleMatch = spot.title?.toLowerCase().includes(query)
+        const descMatch = spot.description?.toLowerCase().includes(query)
+        let speciesMatch = false
+        if (spot.resort_main_species && typeof spot.resort_main_species === 'string') {
            speciesMatch = spot.resort_main_species.toLowerCase().includes(query)
         }
-      }
-      
-      return titleMatch || descMatch || speciesMatch
-    })
-  }, [spots, searchQuery])
+        return titleMatch || descMatch || speciesMatch
+      })
+    }
+    
+    return result
+  }, [spots, searchQuery, maxDistance, referencePoint])
 
+
+  // Popular Fishing Cities for Pro Users
+  const FISHING_CITIES = [
+    { name: 'Cáceres - MT', lat: -16.0708, lng: -57.6789 },
+    { name: 'Corumbá - MS', lat: -19.0091, lng: -57.6528 },
+    { name: 'Manaus - AM', lat: -3.1190, lng: -60.0217 },
+    { name: 'Barcelos - AM', lat: -0.9723, lng: -62.9238 },
+    { name: 'Salvador - BA', lat: -12.9714, lng: -38.5014 },
+    { name: 'São Paulo - SP', lat: -23.5505, lng: -46.6333 },
+    { name: 'Rio de Janeiro - RJ', lat: -22.9068, lng: -43.1729 },
+  ]
 
   return (
     <div 
@@ -128,7 +165,7 @@ export default function ExplorePage() {
 
       <main className="flex-1 flex flex-col h-full overflow-y-auto app-bg text-white pb-32">
         {/* HEADER */}
-        <div className="sticky top-0 z-40 bg-[#060a12]/90 backdrop-blur-xl px-4 py-4 flex flex-col gap-4 border-b border-white/5 shadow-2xl">
+        <div className="sticky top-0 z-40 bg-[#060a12]/90 backdrop-blur-xl mobile-header-padding pr-4 py-4 flex flex-col gap-4 border-b border-white/5 shadow-2xl">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0 text-white/70">
             <ChevronLeft size={24} />
@@ -144,16 +181,71 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* SEARCH BAR */}
-        <div className="relative">
-          <input 
-            type="text" 
-            placeholder="Buscar por pesqueiro, espécie ou rio..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0a0f1a] border border-white/10 text-white rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all font-medium text-sm placeholder:text-white/20"
-          />
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+        {/* SEARCH & FILTERS */}
+        <div className="flex flex-col gap-4">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Buscar por pesqueiro, espécie ou rio..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#0a0f1a] border border-white/10 text-white rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all font-medium text-sm placeholder:text-white/20"
+            />
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Distance Filter */}
+            <div className="flex-1 flex flex-col gap-1.5">
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider flex items-center gap-1">
+                Distância Máxima: <span className="text-cyan-400">{maxDistance}km</span>
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                {[5, 10, 30, 60, 100].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setMaxDistance(d)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                      maxDistance === d 
+                        ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.1)]' 
+                        : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {d}km
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Location Selection (Pro Only) */}
+            <div className="flex-1 flex flex-col gap-1.5">
+              <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider flex items-center justify-between">
+                Local de Referência
+                {!isPro && <span className="text-amber-500 flex items-center gap-1"><Lock size={10} /> Pro</span>}
+              </label>
+              <div className="relative">
+                <select 
+                  disabled={!isPro}
+                  value={referencePoint ? `${referencePoint[0]},${referencePoint[1]}` : ''}
+                  onChange={(e) => {
+                    const [lat, lng] = e.target.value.split(',').map(Number)
+                    const coords: [number, number] = [lat, lng]
+                    setReferencePoint(coords)
+                    fetchData(coords)
+                  }}
+                  className={`w-full bg-[#0a0f1a] border border-white/10 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none transition-all font-medium text-sm appearance-none ${!isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-white/20'}`}
+                >
+                  <option value={userLocation ? `${userLocation[0]},${userLocation[1]}` : ''}>📍 Minha Localização</option>
+                  {FISHING_CITIES.map(city => (
+                    <option key={city.name} value={`${city.lat},${city.lng}`}>{city.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                   <Navigation size={14} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

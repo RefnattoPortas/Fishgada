@@ -42,7 +42,7 @@ export default function SpeciesCatalogPage() {
       // 2. Buscar as capturas do usuário logado
       const { data: capturesData, error: capturesError } = await supabase
         .from('captures')
-        .select('id, species, length_cm, weight_kg, captured_at')
+        .select('id, species, length_cm, weight_kg, captured_at, photo_url')
         .eq('user_id', session.user.id)
 
       if (capturesError) {
@@ -54,9 +54,16 @@ export default function SpeciesCatalogPage() {
       // 3. Mesclar (Join) no frontend
       const mergedAlbum: SpeciesAlbum[] = (speciesData || []).map((s: any) => {
         // Encontrar todas as capturas desta espécie pelo nome
-        const myCatches = userCaptures.filter((c: any) => 
-          c.species?.trim().toLowerCase() === s.nome_comum?.trim().toLowerCase()
-        )
+        const myCatches = userCaptures.filter((c: any) => {
+          const captName = c.species?.split(' (')[0].trim().toLowerCase();
+          const specName = s.nome_comum?.split(' (')[0].trim().toLowerCase();
+          return captName === specName;
+        })
+
+        // Tentar encontrar uma foto das capturas do usuário (se houver preferência no localStorage)
+        const highlightId = typeof window !== 'undefined' ? localStorage.getItem(`album_highlight_${s.nome_comum}`) : null
+        const highlightCatch = highlightId ? myCatches.find((c: any) => c.id === highlightId) : null
+        const userPhoto = highlightCatch?.photo_url || myCatches.find((c: any) => c.photo_url)?.photo_url
 
         return {
           species_id: s.id,
@@ -68,7 +75,7 @@ export default function SpeciesCatalogPage() {
           isca_favorita: s.isca_favorita,
           dica_pro: s.dica_pro,
           tamanho_minimo_cm: s.tamanho_minimo_cm,
-          imagem_url: s.imagem_url,
+          imagem_url: userPhoto || s.imagem_url, // PRIORIDADE PARA A FOTO DO USUÁRIO
           user_id: session.user.id,
           total_capturas: myCatches.length,
           maior_tamanho_capturado_cm: myCatches.length > 0 ? Math.max(...myCatches.map((c: any) => c.length_cm || 0)) : null,
@@ -93,9 +100,6 @@ export default function SpeciesCatalogPage() {
     }
   }
 
-  // Se a tabela/view não existir ou estiver vazia, geramos um fallback estático temporário?
-  // O usuário ainda não rodou a migration!
-  // Mas vamos deixar o código pronto e usar um fallback visual.
   const displaySpecies = species.length > 0 ? species : []
 
   return (
@@ -113,7 +117,7 @@ export default function SpeciesCatalogPage() {
 
       <main className="flex-1 flex flex-col h-full overflow-y-auto app-bg text-white pb-32">
         {/* HEADER */}
-        <div className="sticky top-0 z-40 bg-[#060a12]/90 backdrop-blur-xl px-4 py-4 flex items-center justify-between border-b border-white/5">
+        <div className="sticky top-0 z-40 bg-[#060a12]/90 backdrop-blur-xl mobile-header-padding pr-4 py-4 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors">
             <ChevronLeft size={24} />
@@ -183,7 +187,7 @@ export default function SpeciesCatalogPage() {
                       className={`max-w-full max-h-full object-contain ${
                         isCaught ? 'drop-shadow-[0_0_15px_rgba(0,183,168,0.4)]' : 'opacity-30'
                       }`}
-                      style={{ filter: isCaught ? 'none' : 'contrast(0) brightness(0.5)' }}
+                      style={{ filter: (isCaught && s.imagem_url) ? 'none' : 'contrast(0) brightness(0.5)' }}
                     />
                   </div>
 

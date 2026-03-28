@@ -159,7 +159,7 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
           />
           {isMounted && (
             <datalist id="filter-species-list">
-              {[...SPECIES_COMMON].sort().map(sp => (
+              {[...SPECIES_COMMON].map(sp => sp.split(' (')[0]).sort().map(sp => (
                 <option key={sp} value={sp} />
               ))}
             </datalist>
@@ -214,21 +214,20 @@ export default function MapFiltersBar({ filters, onChange, spotCount, user, them
       {/* Atalhos de espécies comuns */}
       <div style={{ paddingInline: 14, paddingBottom: 8, display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
         {SPECIES_COMMON.slice(0, 15).map(sp => {
-           // Strip the scientific name if present in the chip for brevity
-           const label = sp.includes('(') ? sp.split(' (')[0] : sp
+           const label = sp.split(' (')[0]
            return (
             <button
               key={sp}
-              onClick={() => { setSpeciesSearch(sp); set('species', sp) }}
+              onClick={() => { setSpeciesSearch(label); set('species', label) }}
               style={{
                 padding: '4px 10px',
                 borderRadius: 20,
                 border: '1px solid',
-                borderColor: filters.species === sp ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
-                background: filters.species === sp 
+                borderColor: filters.species === label ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
+                background: filters.species === label 
                   ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)') 
                   : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
-                color: filters.species === sp 
+                color: filters.species === label 
                   ? '#00b38f' 
                   : (theme === 'light' ? '#4b5563' : 'var(--color-text-muted)'),
                 fontSize: 11,
