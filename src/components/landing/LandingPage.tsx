@@ -72,8 +72,12 @@ export default function LandingPage({ onEnterApp }: { onEnterApp: () => void }) 
         </div>
 
         <div className="relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest mb-6">
-            <Sparkles size={12} /> Lançamento Oficial: 3 Meses Grátis
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-[#0a0f1a]/80 backdrop-blur-xl border border-cyan-500/50 shadow-[0_0_30px_rgba(0,255,255,0.2)] mb-8 relative overflow-hidden group animate-bounce-slow">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <span className="text-xl">🎁</span>
+            <p className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.2em]">
+              <span className="text-cyan-400">Presente de Lançamento:</span> Ganhe 3 meses de acesso TOTAL GRÁTIS!
+            </p>
           </div>
           
           <h1 className="text-5xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.9] mb-8">

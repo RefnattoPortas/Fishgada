@@ -40,6 +40,9 @@ export default function ExplorePage() {
   const [maxDistance, setMaxDistance] = useState(100)
   const [profile, setProfile] = useState<any>(null)
   const [isPro, setIsPro] = useState(false)
+  const [citySearch, setCitySearch] = useState('')
+  const [searchResults, setSearchResults] = useState<{name: string, lat: number, lng: number}[]>([])
+  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -96,10 +99,6 @@ export default function ExplorePage() {
           ...s,
           distance_km: calculateDistance(ref[0], ref[1], s.exact_lat || s.display_lat, s.exact_lng || s.display_lng)
         }))
-        
-        // Filter by 100km limit by default (or current maxDistance)
-        // But the user said "o limite de exibição deve ser 100km realmente"
-        // so any card > 100km should probably be hidden.
       }
 
       setSpots(finalSpots)
@@ -107,6 +106,28 @@ export default function ExplorePage() {
       console.error('Erro ao buscar locais:', e)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const searchCities = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([])
+      return
+    }
+    setSearching(true)
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=br&limit=5`)
+      const data = await res.json()
+      const results = data.map((item: any) => ({
+        name: item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon)
+      }))
+      setSearchResults(results)
+    } catch (err) {
+      console.error('Erro ao buscar cidades:', err)
+    } finally {
+      setSearching(false)
     }
   }
 
@@ -139,16 +160,7 @@ export default function ExplorePage() {
   }, [spots, searchQuery, maxDistance, referencePoint])
 
 
-  // Popular Fishing Cities for Pro Users
-  const FISHING_CITIES = [
-    { name: 'Cáceres - MT', lat: -16.0708, lng: -57.6789 },
-    { name: 'Corumbá - MS', lat: -19.0091, lng: -57.6528 },
-    { name: 'Manaus - AM', lat: -3.1190, lng: -60.0217 },
-    { name: 'Barcelos - AM', lat: -0.9723, lng: -62.9238 },
-    { name: 'Salvador - BA', lat: -12.9714, lng: -38.5014 },
-    { name: 'São Paulo - SP', lat: -23.5505, lng: -46.6333 },
-    { name: 'Rio de Janeiro - RJ', lat: -22.9068, lng: -43.1729 },
-  ]
+
 
   return (
     <div 
@@ -206,7 +218,7 @@ export default function ExplorePage() {
                   onChange={(e) => setMaxDistance(Number(e.target.value))}
                   className="w-full bg-[#0a0f1a] border border-white/10 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-cyan-500/50 transition-all font-bold text-sm appearance-none cursor-pointer hover:border-white/20"
                 >
-                  {[5, 10, 30, 60, 100].map(d => (
+                  {[5, 10, 30, 60, 100, 170, 250].map(d => (
                     <option key={d} value={d}>{d} km</option>
                   ))}
                 </select>
@@ -217,32 +229,61 @@ export default function ExplorePage() {
             </div>
 
             {/* Location Selection (Pro Only) */}
-            <div className="flex-1 flex flex-col gap-1.5">
+            <div className="flex-1 flex flex-col gap-1.5 relative">
               <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider flex items-center justify-between">
                 Local de Referência
                 {!isPro && <span className="text-amber-500 flex items-center gap-1"><Lock size={10} /> Pro</span>}
               </label>
               <div className="relative">
-                <select 
+                <input 
+                  type="text"
                   disabled={!isPro}
-                  value={referencePoint ? `${referencePoint[0]},${referencePoint[1]}` : ''}
+                  placeholder={locationEnabled ? "Sua Localização — Digite para alterar..." : "Localização indisponível — Digite uma cidade..."}
+                  value={citySearch}
                   onChange={(e) => {
-                    const [lat, lng] = e.target.value.split(',').map(Number)
-                    const coords: [number, number] = [lat, lng]
-                    setReferencePoint(coords)
-                    fetchData(coords)
+                    setCitySearch(e.target.value)
+                    searchCities(e.target.value)
                   }}
-                  className={`w-full bg-[#0a0f1a] border border-white/10 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none transition-all font-medium text-sm appearance-none ${!isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-white/20'}`}
-                >
-                  <option value={userLocation ? `${userLocation[0]},${userLocation[1]}` : ''}>📍 Minha Localização</option>
-                  {FISHING_CITIES.map(city => (
-                    <option key={city.name} value={`${city.lat},${city.lng}`}>{city.name}</option>
-                  ))}
-                </select>
+                  className={`w-full bg-[#0a0f1a] border border-white/10 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-cyan-500/50 transition-all font-medium text-sm ${!isPro ? 'opacity-50 cursor-not-allowed' : 'hover:border-white/20'}`}
+                />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
-                   <Navigation size={14} />
+                   {searching ? <div className="w-3 h-3 border border-cyan-400 border-t-transparent animate-spin rounded-full" /> : <MapPin size={14} />}
                 </div>
               </div>
+
+              {/* Search Results Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0f1a] border border-white/10 rounded-xl overflow-hidden z-[100] shadow-2xl backdrop-blur-xl">
+                  {searchResults.map((city) => (
+                    <button
+                      key={city.name}
+                      onClick={() => {
+                        const coords: [number, number] = [city.lat, city.lng]
+                        setReferencePoint(coords)
+                        setCitySearch(city.name.split(',')[0])
+                        setSearchResults([])
+                        fetchData(coords)
+                      }}
+                      className="w-full px-4 py-3 text-left text-xs font-bold text-white hover:bg-white/5 border-b border-white/5 last:border-0 truncate"
+                    >
+                      {city.name}
+                    </button>
+                  ))}
+                  <button 
+                    onClick={() => {
+                      if (userLocation) {
+                        setReferencePoint(userLocation)
+                        setCitySearch('')
+                        setSearchResults([])
+                        fetchData(userLocation)
+                      }
+                    }}
+                    className="w-full px-4 py-3 text-left text-[10px] font-black uppercase text-cyan-400 hover:bg-white/5"
+                  >
+                    📍 Usar Minha Localização
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

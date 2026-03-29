@@ -374,21 +374,7 @@ function HomeContent() {
           onHighlightClick={handleHighlightClick}
         />
 
-        {/* Banner de Presente de Lançamento (Topo do Mapa) */}
-        {!user?.profile?.subscription_tier && (
-          <div className="absolute top-[110px] left-1/2 -translate-x-1/2 z-[1000] flex animate-in slide-in-from-top duration-500">
-            <div className="glass px-6 py-3 rounded-2xl border border-cyan-500/50 shadow-[0_0_30px_rgba(0,255,255,0.2)] flex items-center gap-3 whitespace-nowrap overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              <span className="text-xl">🎁</span>
-              <p className="text-[11px] md:text-sm font-black text-white uppercase tracking-widest">
-                <span className="text-cyan-400">Presente de Lançamento:</span> Ganhe 3 meses de acesso TOTAL GRÁTIS!
-              </p>
-              <Link href="/login" className="ml-2 bg-cyan-500 text-dark text-[9px] font-black px-3 py-1.5 rounded-lg hover:bg-cyan-400 transition-colors uppercase tracking-widest">
-                Resgatar
-              </Link>
-            </div>
-          </div>
-        )}
+
 
               <FishingMap
                 spots={filteredSpots}
@@ -403,7 +389,6 @@ function HomeContent() {
         {creationMode && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] glass p-4 rounded-2xl border-accent/30 animate-bounce">
              <div className="flex items-center gap-3">
-                <MapPin className="text-accent" />
                 <MapPin className="text-accent" />
                 <p className="text-sm font-black text-white uppercase tracking-widest">
                    Clique no mapa para posicionar o Ponto de Pesca

@@ -174,51 +174,61 @@ export default function RankingPage() {
                   return (
                     <div 
                       key={user.id} 
-                      className={`group flex items-center gap-4 p-4 rounded-2xl transition-all border ${
+                      className={`group flex items-center gap-4 p-6 md:p-4 min-h-[110px] md:min-h-0 rounded-3xl transition-all border ${
                         isMe 
-                          ? 'bg-accent/10 border-accent/40 shadow-[0_0_20px_rgba(0,212,170,0.1)]' 
+                          ? 'bg-accent/10 border-accent/40 shadow-[0_0_30px_rgba(0,212,170,0.15)]' 
                           : 'glass border-white/5 hover:bg-white/[0.05]'
                       }`}
                     >
-                      <div className="w-12 flex justify-center flex-shrink-0">
-                         {position === 1 ? <Crown className="text-amber-500" size={24} /> :
-                          position === 2 ? <Medal className="text-slate-400" size={22} /> :
-                          position === 3 ? <Medal className="text-orange-700" size={22} /> :
-                          <span className={`text-lg font-black ${isMe ? 'text-accent' : 'text-gray-700'}`}>#{position}</span>}
+                      {/* Rank Position */}
+                      <div className="w-10 md:w-12 flex justify-center flex-shrink-0">
+                         {position === 1 ? <Crown className="text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]" size={28} /> :
+                          position === 2 ? <Medal className="text-slate-400" size={24} /> :
+                          position === 3 ? <Medal className="text-orange-700" size={24} /> :
+                          <span className={`text-lg font-black ${isMe ? 'text-accent' : 'text-gray-700/50 group-hover:text-gray-600'} transition-colors`}>#{position}</span>}
                       </div>
 
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 flex-shrink-0">
-                        {user.avatar_url ? (
-                          <img src={user.avatar_url} className="w-full h-full object-cover" />
-                        ) : <User className="w-full h-full p-3 text-gray-600" />}
+                      {/* User Identity */}
+                      <div className="flex-1 flex items-center gap-3 md:gap-4 min-w-0">
+                        <div className="w-11 h-11 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white/10 flex-shrink-0 bg-[#0a1425]">
+                          {user.avatar_url ? (
+                            <img src={user.avatar_url} className="w-full h-full object-cover" />
+                          ) : <User className="w-full h-full p-2.5 text-gray-600" />}
+                        </div>
+
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                              <h4 className={`text-sm md:text-base font-black uppercase tracking-tight truncate ${isMe ? 'text-accent' : 'text-white'}`}>
+                                {user.display_name || user.username}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                {isMe && <span className="bg-accent text-black text-[7px] font-black px-1.5 py-0.5 rounded-sm">VOCÊ</span>}
+                                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/40 border border-white/5">
+                                   <rank.icon size={8} style={{ color: rank.color }} />
+                                   <span className="text-[7px] font-black uppercase tracking-widest leading-none" style={{ color: rank.color }}>
+                                     {rank.title}
+                                   </span>
+                                </div>
+                              </div>
+                           </div>
+                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                             <MapPin size={10} className="text-cyan-500" /> {user.city || 'Pescas Solitárias'}
+                           </p>
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                         <div className="flex items-center gap-2">
-                            <h4 className={`text-sm font-black uppercase tracking-tight truncate ${isMe ? 'text-accent' : 'text-white'}`}>
-                              {user.display_name || user.username}
-                            </h4>
-                            {isMe && <span className="bg-accent text-black text-[8px] font-black px-1.5 py-0.5 rounded-sm">VOCÊ</span>}
-                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/20 border border-white/5">
-                               <rank.icon size={8} style={{ color: rank.color }} />
-                               <span className="text-[7px] font-black uppercase tracking-widest" style={{ color: rank.color }}>
-                                 {rank.title}
-                               </span>
-                            </div>
-                         </div>
-                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                           <MapPin size={10} className="text-accent" /> {user.city || 'Desconhecido'}
-                         </p>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="flex flex-col items-end">
-                           <span className="text-[9px] text-gray-600 font-black uppercase tracking-tighter">Curtidas</span>
-                           <span className={`text-lg font-black ${isMe ? 'text-accent' : 'text-white'}`}>
+                      {/* Stats Section */}
+                      <div className="flex flex-col items-center md:items-end gap-1 md:gap-2 shrink-0 pr-1">
+                        <div className="flex flex-col items-center md:items-end min-w-[60px]">
+                           <span className="text-[8px] text-gray-600 font-black uppercase tracking-tighter">Curtidas</span>
+                           <span className={`text-base md:text-xl font-black ${isMe ? 'text-accent' : 'text-white'}`}>
                              {user.total_likes?.toLocaleString() || 0}
                            </span>
                         </div>
-                        <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-gray-400">
+                        <div className="flex sm:hidden items-center justify-center rounded-lg bg-white/5 border border-white/10 px-2 py-0.5 text-[8px] font-black text-gray-600">
+                          L{user.level || 1}
+                        </div>
+                        <div className="hidden sm:flex w-10 h-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-[10px] font-black text-gray-500">
                           Lv.{user.level || 1}
                         </div>
                       </div>
@@ -234,24 +244,24 @@ export default function RankingPage() {
              {/* Sticky Card for current user IF rank > 500 */}
              {!isMeInTop500 && !isLoading && currentUser && me && (
                <div className="mt-4 pt-4 border-t border-white/10 animate-in slide-in-from-bottom duration-500">
-                  <div className="bg-accent text-black p-4 rounded-2xl flex items-center gap-4 shadow-[0_0_30px_rgba(0,212,170,0.3)]">
-                      <div className="w-12 text-center">
+                  <div className="bg-accent text-black p-5 rounded-3xl flex items-center gap-4 shadow-[0_0_30px_rgba(0,212,170,0.3)]">
+                      <div className="w-10 md:w-12 text-center">
                         <span className="text-lg font-black">#{myRank || '...'}</span>
                       </div>
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-black/20 flex-shrink-0">
+                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-black/20 flex-shrink-0">
                         {me.avatar_url ? (
                           <img src={me.avatar_url} className="w-full h-full object-cover" />
                         ) : <User className="w-full h-full p-3 text-black/40" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                         <h4 className="text-sm font-black uppercase tracking-tight truncate">
+                         <h4 className="text-sm md:text-base font-black uppercase tracking-tight truncate">
                             {me.display_name || me.username}
                          </h4>
                          <p className="text-[10px] font-bold uppercase tracking-wider">Sua posição atual no ranking</p>
                       </div>
                       <div className="flex flex-col items-end pr-2">
                         <span className="text-[9px] font-black uppercase tracking-tighter">Curtidas</span>
-                        <span className="text-lg font-black">{me.total_likes?.toLocaleString() || 0}</span>
+                        <span className="text-base md:text-lg font-black">{me.total_likes?.toLocaleString() || 0}</span>
                       </div>
                   </div>
                </div>

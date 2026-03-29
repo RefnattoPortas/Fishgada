@@ -385,7 +385,7 @@ export default function ResortAdminPage() {
                    <button 
                      onClick={handlePublish}
                      disabled={saving}
-                     className="bg-accent hover:bg-accent/80 text-dark px-10 py-5 rounded-3xl text-sm font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-accent/20 transition-all border-b-4 border-dark/20 active:translate-y-1 active:border-b-0"
+                     className="bg-accent hover:bg-accent/80 text-dark px-10 py-5 rounded-3xl text-sm font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-accent/20 transition-all border-b-4 border-dark/20 active:translate-y-1 active:border-b-0 whitespace-normal"
                    >
                      {saving ? <span className="spinner" /> : <CheckCircle2 size={20} />} Publicar Agora
                    </button>
@@ -614,7 +614,7 @@ export default function ResortAdminPage() {
                 <button 
                   onClick={() => handleUpdateResort(selectedResort)}
                   disabled={saving}
-                  className="btn-primary w-full py-6 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-accent/20"
+                  className="btn-primary w-full py-6 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-accent/20 whitespace-normal"
                 >
                   {saving ? <span className="spinner" /> : <Save size={18} />} Publicar Alterações no Perfil
                 </button>
@@ -677,7 +677,7 @@ export default function ResortAdminPage() {
                    <button 
                      onClick={() => handleUpdateResort({ active_highlight: selectedResort?.active_highlight })}
                      disabled={saving}
-                     className="btn-primary w-full py-6 text-xs font-black uppercase tracking-[0.3em] mt-16 shadow-2xl shadow-accent/20"
+                     className="btn-primary w-full py-6 text-xs font-black uppercase tracking-[0.3em] mt-16 shadow-2xl shadow-accent/20 whitespace-normal"
                    >
                      {saving ? <span className="spinner" /> : 'Disparar Alerta no Mapa'}
                    </button>
@@ -721,7 +721,7 @@ export default function ResortAdminPage() {
                    <button 
                      onClick={() => handleUpdateResort({ notice_board: selectedResort?.notice_board })}
                      disabled={saving}
-                     className="w-full bg-amber-500 text-dark py-6 rounded-3xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+                     className="w-full bg-amber-500 text-dark py-6 rounded-3xl font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all whitespace-normal"
                    >
                      {saving ? <span className="spinner" /> : 'Atualizar Mural'}
                    </button>
@@ -741,7 +741,7 @@ export default function ResortAdminPage() {
                     </div>
                     <button 
                       onClick={() => setShowNewTournament(true)}
-                      className="btn-primary w-full md:w-auto px-10 py-5 text-xs font-black uppercase tracking-widest gap-2 shadow-xl shadow-accent/20"
+                      className="btn-primary w-full md:w-auto px-10 py-5 text-xs font-black uppercase tracking-widest gap-2 shadow-xl shadow-accent/20 whitespace-normal"
                     >
                       <Plus size={18} /> Novo Torneio
                     </button>

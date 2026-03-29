@@ -169,15 +169,20 @@ export default function Sidebar({
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden h-full scrollbar-none">
         {/* Logo */}
         <div className={`flex items-center justify-center p-0 mb-2 mt-[20px] transition-all duration-300 
-          ${expanded ? (isOpenMobile ? 'h-[80px]' : 'h-[100px]') : 'h-[50px]'}`}>
+          ${expanded ? (isOpenMobile ? 'h-[60px]' : 'h-[70px]') : 'h-[45px]'}`}>
           <Link href="/radar" className="flex items-center justify-center cursor-pointer group w-full h-full">
-            <div className={`flex-shrink-0 flex items-center justify-center overflow-hidden transition-all duration-500 
-              ${expanded ? 'w-full h-full' : 'w-10 h-10'}`}>
+            <div className={`flex items-center justify-center overflow-hidden transition-all duration-500 gap-3
+              ${expanded ? 'px-4 w-full h-full' : 'w-10 h-10'}`}>
               <img 
-                src="/images/logo.png" 
+                src="/images/1f734841-ff76-4035-91f2-7af673684c92-removebg-preview.png" 
                 alt="Fishgada" 
-                className={`transition-all duration-500 rounded-none border-0 ${expanded ? 'w-auto h-full object-contain' : 'w-8 h-8'}`} 
+                className={`transition-all duration-500 rounded-none border-0 ${expanded ? 'h-[40px] md:h-[50px] object-contain' : 'w-8 h-8'}`} 
               />
+              {expanded && (
+                <span className="text-2xl font-black italic tracking-tighter text-white animate-in slide-in-from-left duration-500">
+                  FISH<span className="text-cyan-400">GADA</span>
+                </span>
+              )}
             </div>
           </Link>
         </div>

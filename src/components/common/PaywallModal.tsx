@@ -202,7 +202,7 @@ export default function PaywallModal({ isOpen, onClose, featureName }: PaywallMo
              <button 
                onClick={handleCheckout}
                disabled={loading}
-               className="w-full btn-primary py-6 text-sm font-black uppercase tracking-[0.4em] shadow-2xl shadow-accent/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+               className="w-full btn-primary py-6 text-sm font-black uppercase tracking-[0.4em] shadow-2xl shadow-accent/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed whitespace-normal"
              >
                {loading ? (
                  <>

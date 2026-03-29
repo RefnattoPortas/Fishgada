@@ -11,13 +11,18 @@ export function createClient() {
         if (key?.includes('-auth-token')) {
           const val = localStorage.getItem(key)
           // Se o valor estiver escapado ou for string de JSON double-stringified, causa crash na library
-          if (val && (val.startsWith('"{') || val.startsWith('"{\\"'))) {
+          // Também remove strings que deveriam ser objetos (caso do erro 'Cannot create property user on string')
+          if (val && (
+            val.startsWith('"{') || 
+            val.startsWith('"{\\"') || 
+            (val.includes('access_token') && (val.charAt(0) !== '{' || val.charAt(val.length-1) !== '}'))
+          )) {
             keysToRemove.push(key)
           }
         }
       }
       keysToRemove.forEach(k => {
-        console.warn('[Supabase Cleanup] Removendo token corrompido:', k)
+        console.warn('[Supabase Cleanup] Removendo token corrompido para evitar crash:', k)
         localStorage.removeItem(k)
       })
     } catch (e) {}
