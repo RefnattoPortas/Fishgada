@@ -168,16 +168,15 @@ export default function Sidebar({
       {/* Container de Conteúdo com Scroll Interno */}
       <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden h-full scrollbar-none">
         {/* Logo */}
-        <div className={`flex items-center justify-center p-0 mb-2 mt-4 transition-all duration-300 
-          ${expanded ? (isOpenMobile ? 'h-[110px]' : 'h-[160px]') : 'h-[60px]'}`}>
+        <div className={`flex items-center justify-center p-0 mb-2 mt-[20px] transition-all duration-300 
+          ${expanded ? (isOpenMobile ? 'h-[80px]' : 'h-[100px]') : 'h-[50px]'}`}>
           <Link href="/radar" className="flex items-center justify-center cursor-pointer group w-full h-full">
             <div className={`flex-shrink-0 flex items-center justify-center overflow-hidden transition-all duration-500 
               ${expanded ? 'w-full h-full' : 'w-10 h-10'}`}>
               <img 
                 src="/images/logo.png" 
                 alt="Fishgada" 
-                className="w-full h-full object-contain"
-                style={{ filter: 'drop-shadow(0 0 15px rgba(0,255,255,0.4))' }}
+                className={`transition-all duration-500 rounded-none border-0 ${expanded ? 'w-auto h-full object-contain' : 'w-8 h-8'}`} 
               />
             </div>
           </Link>
