@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import B2BLanding from '@/components/partners/B2BLanding'
-import GoogleAuthButton from '@/components/auth/GoogleAuthButton'
+import LoginButton from '@/components/auth/GoogleAuthButton'
 import SignOutButton from '@/components/auth/SignOutButton'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { getRankByLevel } from '@/lib/utils/ranks'
@@ -398,7 +398,7 @@ export default function Sidebar({
             </div>
           ) : (
             <div className="pb-2">
-               <GoogleAuthButton isExpanded={expanded} />
+               <LoginButton isExpanded={expanded} />
             </div>
           )}
         </div>

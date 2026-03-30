@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { X, MapPin, HelpCircle, Lock, Globe, Users, Waves, Save, Camera } from 'lucide-react'
+import { X, MapPin, HelpCircle, Lock, Globe, Users, Waves, Save, Camera, Store, ArrowRight } from 'lucide-react'
 
 interface NewSpotFormProps {
   userId: string
   isOnline: boolean
   onClose: () => void
   onSuccess?: () => void
+  onSwitchToResort?: () => void
   initialLat?: number
   initialLng?: number
 }
@@ -15,7 +16,7 @@ interface NewSpotFormProps {
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { savePendingSpot } from '@/lib/offline/indexeddb'
 
-export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, initialLat, initialLng }: NewSpotFormProps) {
+export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, onSwitchToResort, initialLat, initialLng }: NewSpotFormProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -188,7 +189,7 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
         className="glass-elevated fade-in-up"
         style={{
           width: '100%',
-          maxWidth: 500,
+          maxWidth: 650,
           borderRadius: 24,
           maxHeight: '90vh',
           display: 'flex',
@@ -267,6 +268,42 @@ export default function NewSpotForm({ userId, isOnline, onClose, onSuccess, init
                 </div>
               </div>
             </div>
+
+            {/* Banner para Redirecionamento de Pesqueiro */}
+            {onSwitchToResort && (
+              <button
+                type="button"
+                onClick={onSwitchToResort}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  borderRadius: 16,
+                  border: '1px solid rgba(168,85,247,0.4)',
+                  background: 'rgba(168,85,247,0.08)',
+                  marginBottom: 16,
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                className="group hover:bg-[rgba(168,85,247,0.12)]"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Store size={22} color="#d8b4fe" />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#d8b4fe', textTransform: 'uppercase', letterSpacing: '0.05em' }}>É um Pesqueiro Comercial?</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>Cadastre sua infraestrutura para virar parceiro.</div>
+                  </div>
+                </div>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ArrowRight size={16} color="#d8b4fe" className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               {[
                 { id: 'public', icon: <Globe size={18} />, label: 'Público', desc: 'Para todos' },

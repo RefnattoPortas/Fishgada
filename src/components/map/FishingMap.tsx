@@ -300,9 +300,14 @@ export default function FishingMap({
         // Criar ícone do pin personalizado
         const isResort = (spot as any).is_resort
         const isPartner = (spot as any).is_resort_partner
-        const pinEmoji = isResort ? '🏡' : '🎣'
-        const baseColor = isPartner ? '#a855f7' : (isSelected ? privacyColor : 'var(--color-bg-card, #121e30)')
-        const borderColor = (isResort || isPartner) ? '#a855f7' : privacyColor
+        const resortInfra = (spot as any).resort_infrastructure || {}
+        const hasRestaurant = resortInfra.restaurante === true
+        // Parceiro com restaurante = talheres + anzol | Parceiro normal = casa | Demais = vara de pesca
+        const pinEmoji = isPartner
+          ? (hasRestaurant ? '🍽️🎣' : '🏡')
+          : '🎣'
+        const baseColor = isPartner ? '#000000' : (isSelected ? privacyColor : 'var(--color-bg-card, #121e30)')
+        const borderColor = isPartner ? '#a855f7' : privacyColor // Verde para resorts comuns, roxo apenas para parceiros
         
         const icon = L.divIcon({
           className: '',
@@ -343,9 +348,10 @@ export default function FishingMap({
               </div>
               <span style="
                 position: absolute;
-                font-size: ${isSelected ? 16 : 13}px;
+                font-size: ${isSelected ? (hasRestaurant ? 12 : 16) : (hasRestaurant ? 10 : 13)}px;
                 z-index: 1;
                 pointer-events: none;
+                white-space: nowrap;
                 filter: ${isPartner ? 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' : 'none'};
               ">${pinEmoji}</span>
               ${spot.is_verified

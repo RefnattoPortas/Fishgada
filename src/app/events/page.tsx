@@ -63,7 +63,6 @@ export default function EventsPage() {
         *,
         fishing_resorts(
           id,
-          name,
           spots(id, title)
         )
       `)

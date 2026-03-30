@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, MapPin, Save, Utensils, Wifi, Warehouse, Anchor, Car, Clock, Instagram, Phone, Globe, Star, Fish, Camera, Plus, MessageSquare } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, MapPin, Save, Utensils, Wifi, Warehouse, Anchor, Car, Clock, Instagram, Phone, Globe, Star, Fish, Camera, Plus, Minus, MessageSquare, Navigation, Baby, UtensilsCrossed, Dumbbell, Heart } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 
 interface NewResortFormProps {
@@ -22,6 +22,10 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
   const [checkingTier, setCheckingTier] = useState(true)
   const [userTier, setUserTier] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [pinPickerOpen, setPinPickerOpen] = useState(false)
+  const miniMapRef = useRef<HTMLDivElement>(null)
+  const miniMapInstanceRef = useRef<any>(null)
+  const miniMarkerRef = useRef<any>(null)
   const [data, setData] = useState({
     title: '',
     description: '',
@@ -36,7 +40,10 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
       wi_fi: false,
       pousada: false,
       aluguel_equipamento: false,
-      estacionamento: false
+      estacionamento: false,
+      area_kids: false,
+      pesca_esportiva: false,
+      pesca_familia: false
     },
     main_species: [] as string[],
     prices: {
@@ -50,6 +57,87 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
   })
 
   const supabase = getSupabaseClient() as any
+
+  // Inicializar mini-mapa quando o pinPicker abre
+  useEffect(() => {
+    if (!pinPickerOpen || !miniMapRef.current) return
+
+    let mounted = true
+    let mapInst: any = null
+
+    const initMini = async () => {
+      const L = (await import('leaflet')).default
+      if (!mounted || !miniMapRef.current) return
+
+      // @ts-expect-error leaflet css
+      await import('leaflet/dist/leaflet.css')
+
+      // Limpeza residual
+      const el = miniMapRef.current
+      if ((el as any)._leaflet_id) {
+        el.classList.remove('leaflet-container','leaflet-touch','leaflet-retina','leaflet-fade-anim','leaflet-grab','leaflet-touch-drag','leaflet-touch-zoom')
+        ;(el as any)._leaflet_id = null
+      }
+
+      mapInst = L.map(el, { center: [data.lat, data.lng], zoom: 13, zoomControl: false, attributionControl: false })
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(mapInst)
+
+      const pinIcon = L.divIcon({
+        className: '',
+        html: `<div style="width:28px;height:28px;background:#a855f7;border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(168,85,247,0.6);"></div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+      })
+
+      const marker = L.marker([data.lat, data.lng], { icon: pinIcon, draggable: true }).addTo(mapInst)
+      miniMarkerRef.current = marker
+
+      marker.on('dragend', () => {
+        const pos = marker.getLatLng()
+        setData(d => ({ ...d, lat: parseFloat(pos.lat.toFixed(6)), lng: parseFloat(pos.lng.toFixed(6)) }))
+      })
+
+      mapInst.on('click', (e: any) => {
+        const { lat, lng } = e.latlng
+        marker.setLatLng([lat, lng])
+        setData(d => ({ ...d, lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) }))
+      })
+
+      miniMapInstanceRef.current = mapInst
+    }
+
+    initMini()
+
+    return () => {
+      mounted = false
+      if (miniMapInstanceRef.current) {
+        try { miniMapInstanceRef.current.remove() } catch {}
+        miniMapInstanceRef.current = null
+        miniMarkerRef.current = null
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinPickerOpen])
+
+  // Sincronizar marker quando lat/lng mudam via inputs enquanto o mapa está aberto
+  useEffect(() => {
+    if (!miniMarkerRef.current || !miniMapInstanceRef.current) return
+    try {
+      miniMarkerRef.current.setLatLng([data.lat, data.lng])
+      miniMapInstanceRef.current.panTo([data.lat, data.lng])
+    } catch {}
+  }, [data.lat, data.lng])
+
+  const handleUseMyLocation = () => {
+    if (!('geolocation' in navigator)) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setData(d => ({ ...d, lat: parseFloat(pos.coords.latitude.toFixed(6)), lng: parseFloat(pos.coords.longitude.toFixed(6)) }))
+      },
+      () => alert('Não foi possível obter sua localização. Verifique as permissões de GPS.'),
+      { enableHighAccuracy: true, timeout: 6000 }
+    )
+  }
 
   useEffect(() => {
     const fetchTier = async () => {
@@ -67,6 +155,16 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
   useEffect(() => {
     if (initialLat && initialLng) {
       setData(d => ({ ...d, lat: initialLat, lng: initialLng }))
+    } else {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setData(d => ({ ...d, lat: parseFloat(pos.coords.latitude.toFixed(6)), lng: parseFloat(pos.coords.longitude.toFixed(6)) }))
+          },
+          () => console.log('Não foi possível auto-geolocalizar (permissão negada/timeout).'),
+          { enableHighAccuracy: true, timeout: 5000 }
+        )
+      }
     }
   }, [initialLat, initialLng])
 
@@ -119,7 +217,9 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
 
       if (spotError) throw spotError
 
-      // 2. Criar o Resort vinculado ao Spot, começando INATIVO e NÃO PARCEIRO
+      // 2. Criar o Resort vinculado ao Spot
+      // is_active: true para que o spot apareça imediatamente no mapa como ponto público.
+      // O fluxo de publicação no painel admin é para virar Parceiro Oficial (com badge).
       const { error: resortError } = await supabase
         .from('fishing_resorts')
         .insert([{
@@ -132,7 +232,7 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
           instagram: data.instagram || null,
           website: data.website || null,
           is_partner: false, 
-          is_active: false, // Começa desativado para o fluxo de publicação
+          is_active: true, // Spot visível no mapa imediatamente
           main_species: data.main_species
         }])
 
@@ -181,7 +281,7 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
     <div className="fixed inset-0 z-[1500] flex items-center justify-center p-2 sm:p-4 bg-black/80">
       <div className="glass-elevated fade-in-up" 
            style={{ 
-             width: '100%', maxWidth: 550, borderRadius: 28, maxHeight: '95vh', 
+             width: '100%', maxWidth: 715, borderRadius: 28, maxHeight: '95vh', 
              display: 'flex', flexDirection: 'column', overflow: 'hidden' 
            }}>
         
@@ -234,7 +334,10 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
             <label className="label">Infraestrutura Disponível</label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {[
-                { id: 'restaurante', icon: <Utensils size={18} />, label: 'Restaurante' },
+                { id: 'restaurante', icon: <UtensilsCrossed size={18} />, label: 'Restaurante' },
+                { id: 'area_kids', icon: <Baby size={18} />, label: 'Área Kids' },
+                { id: 'pesca_esportiva', icon: <Dumbbell size={18} />, label: 'Esportiva' },
+                { id: 'pesca_familia', icon: <Heart size={18} />, label: 'Família' },
                 { id: 'banheiros', icon: <Warehouse size={18} />, label: 'Banheiros' },
                 { id: 'wi_fi', icon: <Wifi size={18} />, label: 'Wi-Fi' },
                 { id: 'pousada', icon: <Warehouse size={18} />, label: 'Pousada' },
@@ -332,19 +435,84 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
 
           {/* Localização */}
           <div className="glass" style={{ padding: 16, borderRadius: 16, border: '1px dashed var(--color-accent-glow)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--color-accent-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <MapPin className="text-secondary" size={20} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 700 }}>Localização do Pesqueiro</div>
-                <div style={{ fontSize: 10, color: 'var(--color-accent-primary)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Clique no mapa para alterar a posição
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  Lat: {data.lat.toFixed(5)}, Lng: {data.lng.toFixed(5)}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="btn-secondary"
+                style={{ height: 36, padding: '0 12px', borderRadius: 12, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}
+                title="Usar minha localização atual"
+              >
+                <Navigation size={14} />
+                GPS
+              </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {/* Botão para abrir o Mini-Mapa */}
+            <button
+              type="button"
+              onClick={() => setPinPickerOpen(v => !v)}
+              style={{
+                width: '100%', padding: '12px', borderRadius: 14,
+                border: '2px solid',
+                borderColor: pinPickerOpen ? 'var(--color-accent-primary)' : 'var(--color-border)',
+                background: pinPickerOpen ? 'var(--color-accent-glow)' : 'rgba(168,85,247,0.05)',
+                color: pinPickerOpen ? 'var(--color-accent-primary)' : '#a855f7',
+                fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'all 0.2s ease', cursor: 'pointer', marginBottom: pinPickerOpen ? 12 : 0
+              }}
+            >
+              <MapPin size={16} />
+              {pinPickerOpen ? 'Fechar Mapa' : '📍 Clique aqui para definir a posição no mapa'}
+            </button>
+
+            {/* Mini-mapa embutido */}
+            {pinPickerOpen && (
+              <div style={{ borderRadius: 12, overflow: 'hidden', border: '1.5px solid rgba(168,85,247,0.4)', position: 'relative' }}>
+                <div
+                  ref={miniMapRef}
+                  style={{ width: '100%', height: 240, cursor: 'crosshair', zIndex: 1 }}
+                />
+                
+                {/* Botões de Zoom */}
+                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1000 }}>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    title="Mais Zoom"
+                    style={{ width: 34, height: 34, padding: 0, borderRadius: 10, background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(168,85,247,0.4)' }} 
+                    onClick={() => miniMapInstanceRef.current?.zoomIn()}
+                  >
+                    <Plus size={18} color="white" />
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary" 
+                    title="Menos Zoom"
+                    style={{ width: 34, height: 34, padding: 0, borderRadius: 10, background: 'rgba(0,0,0,0.7)', border: '1px solid rgba(168,85,247,0.4)' }} 
+                    onClick={() => miniMapInstanceRef.current?.zoomOut()}
+                  >
+                    <Minus size={18} color="white" />
+                  </button>
+                </div>
+
+                <div style={{ padding: '8px 12px', background: 'rgba(0,0,0,0.4)', fontSize: 11, color: '#a855f7', fontWeight: 700, textAlign: 'center', position: 'relative', zIndex: 10 }}>
+                  🖱️ Clique no mapa ou arraste o marcador para definir a posição
+                </div>
+              </div>
+            )}
+
+            {/* Inputs manuais de lat/lng */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                <div>
                  <label style={{ fontSize: 10, fontWeight: 800, color: 'gray', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Latitude</label>
                  <input 

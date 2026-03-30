@@ -304,9 +304,58 @@ export interface Database {
         Update: { id?: string; user_id?: string; achievement_id?: string }
       }
       fishing_resorts: {
-        Row: { id: string; spot_id: string; owner_id: string; infrastructure: Json; opening_hours: string | null; prices: Json; phone: string | null; is_partner: boolean; created_at: string }
-        Insert: { id?: string; spot_id: string; owner_id: string; infrastructure?: Json; opening_hours?: string | null; prices?: Json; phone?: string | null; is_partner?: boolean }
-        Update: { id?: string; spot_id?: string; owner_id?: string; infrastructure?: Json; opening_hours?: string | null; prices?: Json; phone?: string | null; is_partner?: boolean }
+        Row: { 
+          id: string; 
+          spot_id: string; 
+          owner_id: string; 
+          infrastructure: Json; 
+          opening_hours: string | null; 
+          prices: Json; 
+          phone: string | null; 
+          is_partner: boolean; 
+          is_active: boolean;
+          active_highlight: string | null;
+          notice_board: string | null;
+          photos: string[] | null;
+          instagram: string | null;
+          website: string | null;
+          main_species: string[] | null;
+          created_at: string 
+        }
+        Insert: { 
+          id?: string; 
+          spot_id: string; 
+          owner_id: string; 
+          infrastructure?: Json; 
+          opening_hours?: string | null; 
+          prices?: Json; 
+          phone?: string | null; 
+          is_partner?: boolean;
+          is_active?: boolean;
+          active_highlight?: string | null;
+          notice_board?: string | null;
+          photos?: string[] | null;
+          instagram?: string | null;
+          website?: string | null;
+          main_species?: string[] | null;
+        }
+        Update: { 
+          id?: string; 
+          spot_id?: string; 
+          owner_id?: string; 
+          infrastructure?: Json; 
+          opening_hours?: string | null; 
+          prices?: Json; 
+          phone?: string | null; 
+          is_partner?: boolean;
+          is_active?: boolean;
+          active_highlight?: string | null;
+          notice_board?: string | null;
+          photos?: string[] | null;
+          instagram?: string | null;
+          website?: string | null;
+          main_species?: string[] | null;
+        }
       }
       tournaments: {
         Row: { id: string; resort_id: string; title: string; event_date: string; status: 'open' | 'ongoing' | 'closed'; created_at: string }

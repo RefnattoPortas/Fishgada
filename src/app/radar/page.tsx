@@ -8,7 +8,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import SpotDetailsView from '@/components/map/SpotDetailsView'
 import MapFiltersBar, { MapFilters } from '@/components/map/MapFiltersBar'
 import type { SpotMapView } from '@/types/database'
-import { Plus, RefreshCw, MapPin, Warehouse, Flame, Download, Info, Fish } from 'lucide-react'
+import { Plus, RefreshCw, MapPin, Warehouse, Flame, Download, Info, Fish, Store } from 'lucide-react'
 import type { ResortHighlight } from '@/components/map/MapFiltersBar'
 import PaywallModal from '@/components/common/PaywallModal'
 import WelcomeOverlay from '@/components/common/WelcomeOverlay'
@@ -391,7 +391,9 @@ function HomeContent() {
              <div className="flex items-center gap-3">
                 <MapPin className="text-accent" />
                 <p className="text-sm font-black text-white uppercase tracking-widest">
-                   Clique no mapa para posicionar o Ponto de Pesca
+                   {creationMode === 'resort'
+                     ? 'Clique no mapa para posicionar o Pesqueiro'
+                     : 'Clique no mapa para posicionar o Ponto de Pesca'}
                 </p>
              </div>
           </div>
@@ -405,7 +407,6 @@ function HomeContent() {
             right: 17,
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 56px)',
-            gridTemplateRows: 'repeat(2, 56px)',
             gap: 8,
             zIndex: 900,
           }}
@@ -537,6 +538,7 @@ function HomeContent() {
           initialLng={tempCoords?.lng}
           onClose={() => { setShowSpotForm(false); setTempCoords(null); }}
           onSuccess={() => { setShowSpotForm(false); setTempCoords(null); fetchSpots(); }}
+          onSwitchToResort={() => { setShowSpotForm(false); setShowResortForm(true); }}
         />
       )}
 
