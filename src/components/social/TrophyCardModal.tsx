@@ -148,7 +148,7 @@ export default function TrophyCardModal({ isOpen, onClose, spot, userId }: Troph
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 pb-10 flex flex-col items-center gap-8">
           
-          <div className="relative group shadow-[0_0_100px_rgba(0,212,170,0.15)] rounded-[32px] overflow-hidden border border-white/10" style={{ width: 320, height: 568 }}>
+          <div className="relative group shadow-[0_0_100px_rgba(0,212,170,0.15)] rounded-[32px] overflow-hidden border border-white/10" style={{ width: 320, height: 427 }}>
             <div 
               ref={cardRef}
               className="w-full h-full flex flex-col bg-[#060a12] overflow-hidden relative"
@@ -167,17 +167,14 @@ export default function TrophyCardModal({ isOpen, onClose, spot, userId }: Troph
                           <img src={profile.avatar_url} className="w-full h-full object-cover" crossOrigin="anonymous" />
                         ) : <User className="w-full h-full p-2 text-gray-500" />}
                      </div>
-                     <div className="flex flex-col">
-                        <span className="text-[8px] text-gray-500 font-black uppercase tracking-[0.2em] leading-none mb-1">Pescador Autorizado</span>
-                        <div className="flex items-center gap-1.5">
-                           <span className="text-xs font-black text-white">{profile?.display_name || 'Mestre'}</span>
-                           {userRank && (
-                             <div className="flex items-center gap-1">
-                                <div className="w-[1px] h-2.5 bg-white/20" />
-                                <userRank.icon size={10} style={{ color: userRank.color }} />
-                             </div>
-                           )}
-                        </div>
+                     <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-white">{profile?.display_name || 'Mestre'}</span>
+                        {userRank && (
+                           <div className="flex items-center gap-1">
+                              <div className="w-[1px] h-2.5 bg-white/20" />
+                              <userRank.icon size={12} style={{ color: userRank.color }} />
+                           </div>
+                        )}
                      </div>
                  </div>
                  {capture?.is_trophy && (
@@ -187,8 +184,8 @@ export default function TrophyCardModal({ isOpen, onClose, spot, userId }: Troph
                  )}
               </div>
               
-              {/* BLOCO CENTRAL (A FOTO DO PEIXE - Limpa e com destaque maximo) */}
-              <div className="flex-1 w-full relative bg-black border-y border-white/10 overflow-hidden outline-none">
+              {/* BLOCO CENTRAL (A FOTO DO PEIXE - 1:1) */}
+              <div className="relative w-[320px] h-[320px] bg-black border-y border-white/10 overflow-hidden outline-none flex-shrink-0">
                  {capture?.photo_url ? (
                    <img src={capture.photo_url} className="w-full h-full object-cover" crossOrigin="anonymous" style={{ display: 'block' }} />
                  ) : (
@@ -198,60 +195,51 @@ export default function TrophyCardModal({ isOpen, onClose, spot, userId }: Troph
                    </div>
                  )}
                  
-                 {/* Selo muito discreto na foto */}
-                 <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5 shadow-lg">
-                    <Fish size={8} className="text-cyan-400" />
-                    <span className="text-[7px] font-black tracking-widest text-white/90">FISHGADA</span>
+                 {/* Selo e Pesca & Solta */}
+                 <div className="absolute inset-x-0 bottom-0 p-4 flex items-end justify-between bg-gradient-to-t from-black/60 to-transparent">
+                    {capture?.was_released && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 rounded border border-green-400/30">
+                        <ShieldCheck size={10} className="text-white" />
+                        <span className="text-[7px] font-black text-white uppercase tracking-widest">Pesca & Solta</span>
+                      </div>
+                    )}
+                    <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 flex items-center gap-1.5 shadow-lg">
+                       <Fish size={8} className="text-cyan-400" />
+                       <span className="text-[7px] font-black tracking-widest text-white/90">FISHGADA</span>
+                    </div>
                  </div>
               </div>
 
-              {/* BLOCO INFERIOR (Metadados da Captura) */}
-              <div className="p-5 z-10 flex flex-col justify-between bg-gradient-to-t from-black to-[#0a0f1a]">
+              {/* BLOCO INFERIOR (Metadados da Captura) - Compacto para 3:4 */}
+              <div className="flex-1 p-4 z-10 flex flex-col justify-center bg-[#0a0f1a]">
                  
-                 {/* Espécie e Peso */}
-                 <div className="flex justify-between items-end gap-3 mb-4">
+                 {/* Espécie, Peso e Local */}
+                 <div className="flex justify-between items-center gap-2">
                     <div className="flex flex-col min-w-0">
-                       <span className="text-[8px] text-cyan-400 font-black uppercase tracking-[0.3em] mb-1">Registro Oficial</span>
-                       <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tighter leading-none italic truncate">
+                       <h2 className="text-sm font-black text-white uppercase tracking-tighter italic truncate leading-tight">
                          {capture?.species || 'Expedição'}
                        </h2>
+                       <div className="flex items-center gap-1.5 mt-0.5">
+                          <MapPin size={8} className="text-cyan-400" />
+                          <span className="text-[7px] font-black text-white/50 uppercase tracking-[0.1em] truncate max-w-[120px]">{spot?.title}</span>
+                          <div className="w-[1px] h-1.5 bg-white/10 mx-1" />
+                          <span className="text-[7px] text-gray-600 font-black uppercase tracking-widest">
+                            {new Date(capture?.captured_at || new Date()).toLocaleDateString('pt-BR')}
+                          </span>
+                       </div>
                     </div>
+
                     {capture?.weight_kg && (
                       <div className="flex flex-col items-end flex-shrink-0">
-                         <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Peso</span>
                          <div className="flex items-baseline gap-0.5">
-                            <span className="text-xl sm:text-2xl font-black text-cyan-400 leading-none">{capture.weight_kg}</span>
-                            <span className="text-[10px] text-white/50 lowercase font-bold">kg</span>
+                            <span className="text-lg font-black text-cyan-400 leading-none">{capture.weight_kg}</span>
+                            <span className="text-[8px] text-white/50 lowercase font-bold">kg</span>
                          </div>
                       </div>
                     )}
-                 </div>
 
-                 {/* Separador */}
-                 <div className="w-full h-[1px] bg-white/5 mb-4" />
-
-                 {/* Local, Data e Autenticidade (QR Code) */}
-                 <div className="flex items-end justify-between">
-                    <div className="flex flex-col gap-2.5">
-                       {capture?.was_released && (
-                         <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md w-fit">
-                           <ShieldCheck size={10} className="text-green-500" />
-                           <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">Pesca & Solta</span>
-                         </div>
-                       )}
-                       <div className="flex items-center gap-2">
-                          <MapPin size={12} className="text-cyan-400" />
-                          <span className="text-[10px] font-black text-white/90 uppercase tracking-widest truncate max-w-[140px]">{spot?.title}</span>
-                       </div>
-                       <span className="text-[8px] text-gray-500 font-black uppercase tracking-widest">
-                         {new Date(capture?.captured_at || new Date()).toLocaleDateString('pt-BR')}
-                       </span>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-1.5">
-                       <div className="p-1.5 bg-white rounded-lg shadow-xl shadow-cyan-500/10">
-                          <QrCode size={28} className="text-dark" strokeWidth={2.5} />
-                       </div>
+                    <div className="p-1 bg-white rounded flex-shrink-0 ml-1">
+                        <QrCode size={16} className="text-dark" strokeWidth={2.5} />
                     </div>
                  </div>
               </div>
