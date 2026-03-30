@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
-import { User, Trophy, Fish, MapPin, Calendar, Star, TrendingUp, Award, Clock, Warehouse, Plus, ArrowRight } from 'lucide-react'
+import { User, Trophy, Fish, MapPin, Calendar, Star, TrendingUp, Award, Clock, Warehouse, Plus, ArrowRight, Megaphone, Utensils } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { getRankByLevel } from '@/lib/utils/ranks'
 import NewResortForm from '@/components/map/NewResortForm'
@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [isResortOwner, setIsResortOwner] = useState(false)
   const [showResortForm, setShowResortForm] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [followedResorts, setFollowedResorts] = useState<any[]>([])
 
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -34,6 +35,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfileData()
+    fetchFollowedResorts()
     
     // Check tab from URL
     const params = new URLSearchParams(window.location.search)
@@ -136,6 +138,27 @@ export default function ProfilePage() {
       setIsResortOwner(!!resort && resort.length > 0)
     }
     setLoading(false)
+  }
+
+  const fetchFollowedResorts = async () => {
+    try {
+      const ids = JSON.parse(localStorage.getItem('followed_spots') || '[]')
+      if (ids.length === 0) {
+        setFollowedResorts([])
+        return
+      }
+      
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from('spots_map_view')
+        .select('*')
+        .in('id', ids)
+      
+      if (error) throw error
+      if (data) setFollowedResorts(data)
+    } catch (e) {
+      console.error('Erro ao buscar pesqueiros seguidos:', e)
+    }
   }
 
   const handleUpdateProfile = async () => {
@@ -347,6 +370,68 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+
+              {/* Mural dos Pesqueiros (Followed Feed) */}
+              {followedResorts.length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                       <Megaphone size={18} className="text-accent" /> Mural dos Pesqueiros Seguidos
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {followedResorts.map(resort => (
+                      <div key={resort.id} className="relative glass rounded-[32px] border border-white/5 overflow-hidden flex flex-col group hover:border-accent/30 transition-all">
+                        {/* Header Image / Pattern */}
+                        <div className="h-20 bg-gradient-to-r from-accent/10 to-blue-500/10 relative">
+                           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+                           <div className="absolute bottom-0 left-6 translate-y-1/2">
+                              <div className="w-12 h-12 rounded-2xl bg-slate-900 border-2 border-[#0a0f1a] flex items-center justify-center p-2 shadow-xl">
+                                 {resort.photo_url ? (
+                                   <img src={resort.photo_url} className="w-full h-full object-cover rounded-lg" />
+                                 ) : <Warehouse size={20} className="text-accent" />}
+                              </div>
+                           </div>
+                        </div>
+                        
+                        <div className="p-6 pt-10 space-y-3">
+                           <div className="flex items-center justify-between">
+                              <h4 className="text-lg font-black text-white truncate">{resort.title}</h4>
+                              {resort.resort_active_highlight && (
+                                <span className="text-[9px] font-black text-amber-500 uppercase bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
+                                  {resort.resort_active_highlight}
+                                </span>
+                              )}
+                           </div>
+                           
+                           {resort.resort_notice_board ? (
+                             <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                               <p className="text-xs text-gray-300 italic leading-relaxed">
+                                  "{resort.resort_notice_board}"
+                               </p>
+                             </div>
+                           ) : (
+                             <p className="text-[11px] text-gray-500 font-medium italic">Nenhum recado no mural ainda.</p>
+                           )}
+
+                           <div className="flex items-center justify-between pt-2">
+                             <div className="flex gap-2">
+                                {resort.resort_infrastructure?.restaurante && <Utensils size={14} className="text-gray-600" />}
+                                {resort.resort_infrastructure?.pousada && <Warehouse size={14} className="text-gray-600" />}
+                             </div>
+                             <a 
+                               href={`/radar?selectSpot=${resort.id}`}
+                               className="text-[10px] font-black uppercase text-accent hover:underline flex items-center gap-1"
+                             >
+                               Ver no Mapa <ArrowRight size={12} />
+                             </a>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Bottom Sections */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
