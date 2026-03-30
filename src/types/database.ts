@@ -363,7 +363,7 @@ export interface Database {
         Update: { id?: string; resort_id?: string; title?: string; event_date?: string; status?: 'open' | 'ongoing' | 'closed' }
       }
       tournament_participants: {
-        Row: { id: string; tournament_id: string; user_id: string; registered_at: string }
+        Row: { id: string; tournament_id: string; user_id: string; created_at: string }
         Insert: { id?: string; tournament_id: string; user_id: string }
         Update: { id?: string; tournament_id?: string; user_id?: string }
       }

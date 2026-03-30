@@ -174,9 +174,9 @@ export default function RankingPage() {
                   return (
                     <div 
                       key={user.id} 
-                      className={`group flex items-center gap-4 p-6 md:p-4 min-h-[110px] md:min-h-0 rounded-3xl transition-all border ${
+                      className={`group flex items-center gap-4 p-6 md:p-5 min-h-[110px] md:min-h-0 rounded-[32px] transition-all border ${
                         isMe 
-                          ? 'bg-accent/10 border-accent/40 shadow-[0_0_30px_rgba(0,212,170,0.15)]' 
+                          ? 'bg-accent/10 border-accent shadow-[0_0_25px_rgba(0,212,170,0.4)]' 
                           : 'glass border-white/5 hover:bg-white/[0.05]'
                       }`}
                     >
@@ -197,18 +197,15 @@ export default function RankingPage() {
                         </div>
 
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
-                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                              <h4 className={`text-sm md:text-base font-black uppercase tracking-tight truncate ${isMe ? 'text-accent' : 'text-white'}`}>
+                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-1">
+                              <h4 className={`text-sm md:text-base font-black uppercase tracking-tight truncate max-w-full ${isMe ? 'text-accent' : 'text-white'}`}>
                                 {user.display_name || user.username}
                               </h4>
-                              <div className="flex items-center gap-2">
-                                {isMe && <span className="bg-accent text-black text-[7px] font-black px-1.5 py-0.5 rounded-sm">VOCÊ</span>}
-                                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/40 border border-white/5">
-                                   <rank.icon size={8} style={{ color: rank.color }} />
-                                   <span className="text-[7px] font-black uppercase tracking-widest leading-none" style={{ color: rank.color }}>
-                                     {rank.title}
-                                   </span>
-                                </div>
+                              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/40 border border-white/5 shrink-0">
+                                 <rank.icon size={8} style={{ color: rank.color }} />
+                                 <span className="text-[7px] font-black uppercase tracking-widest leading-none" style={{ color: rank.color }}>
+                                   {rank.title}
+                                 </span>
                               </div>
                            </div>
                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1">
@@ -219,8 +216,7 @@ export default function RankingPage() {
 
                       {/* Stats Section */}
                       <div className="flex flex-col items-center md:items-end gap-1 md:gap-2 shrink-0 pr-1">
-                        <div className="flex flex-col items-center md:items-end min-w-[60px]">
-                           <span className="text-[8px] text-gray-600 font-black uppercase tracking-tighter">Curtidas</span>
+                        <div className="flex flex-col items-center md:items-end min-w-[50px]">
                            <span className={`text-base md:text-xl font-black ${isMe ? 'text-accent' : 'text-white'}`}>
                              {user.total_likes?.toLocaleString() || 0}
                            </span>

@@ -94,7 +94,7 @@ export default function ProfilePage() {
         .from('tournament_participants')
         .select(`
           id,
-          registered_at,
+          created_at,
           tournaments(
             id,
             title,
@@ -106,7 +106,7 @@ export default function ProfilePage() {
           )
         `)
         .eq('user_id', user.id)
-        .order('registered_at', { ascending: false })
+        .order('created_at', { ascending: false })
       
       if (userInscriptions) {
         setInscriptions(userInscriptions)

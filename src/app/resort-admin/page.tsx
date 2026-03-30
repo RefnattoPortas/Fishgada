@@ -136,7 +136,7 @@ export default function ResortAdminPage() {
         *,
         tournament_participants(
           id,
-          registered_at,
+          created_at,
           profiles(display_name, avatar_url, level)
         )
       `)
@@ -853,7 +853,7 @@ export default function ResortAdminPage() {
                                          <p className="font-bold text-white text-sm truncate uppercase tracking-tight">{p.profiles?.display_name || 'Participante'}</p>
                                          <div className="flex items-center gap-2">
                                             <span className="text-[9px] text-accent font-black">LVL {p.profiles?.level || 1}</span>
-                                            <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider">{new Date(p.registered_at).toLocaleDateString()}</span>
+                                            <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider">{new Date(p.created_at).toLocaleDateString()}</span>
                                          </div>
                                       </div>
                                    </div>
