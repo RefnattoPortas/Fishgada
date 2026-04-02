@@ -452,10 +452,15 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
                 value={data.phone}
                 onChange={e => {
                   let val = e.target.value.replace(/\D/g, '')
-                  if (val.length > 10) val = val.substring(0, 10)
-                  const m = val.match(/^(\d{2})(\d{4})(\d{4})$/)
-                  if (m) val = `(${m[1]}) ${m[2]}-${m[3]}`
-                  else if (val.length > 2) val = `(${val.substring(0,2)}) ${val.substring(2)}`
+                  if (val.length > 11) val = val.substring(0, 11) // Allow up to 11 for mobile-like numbers
+                  
+                  if (val.length === 11) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
+                  } else if (val.length === 10) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`
+                  } else if (val.length > 2) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2)}`
+                  }
                   setData(d => ({ ...d, phone: val }))
                 }}
               />
@@ -469,9 +474,14 @@ export default function NewResortForm({ userId, isOnline, initialLat, initialLng
                 onChange={e => {
                   let val = e.target.value.replace(/\D/g, '')
                   if (val.length > 11) val = val.substring(0, 11)
-                  const m = val.match(/^(\d{2})(\d{5})(\d{4})$/)
-                  if (m) val = `(${m[1]}) ${m[2]}-${m[3]}`
-                  else if (val.length > 2) val = `(${val.substring(0,2)}) ${val.substring(2)}`
+                  
+                  if (val.length === 11) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7)}`
+                  } else if (val.length === 10) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`
+                  } else if (val.length > 2) {
+                    val = `(${val.slice(0, 2)}) ${val.slice(2)}`
+                  }
                   setData(d => ({ ...d, whatsapp: val }))
                 }}
               />

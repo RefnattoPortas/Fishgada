@@ -52,6 +52,14 @@ export default function TermsPage() {
           Os planos (Pescador e Pesqueiro) possuem renovação automática por padrão. O usuário pode cancelar a renovação a qualquer momento através do painel de configurações, mantendo o acesso até o fim do ciclo pago.
         </p>
       </section>
+
+      <section>
+        <span className="text-cyan-400 font-black uppercase text-xs tracking-widest block mb-4">Item 06</span>
+        <h2 className="text-2xl font-black text-white uppercase italic tracking-tight mb-4">Conteúdo de Usuário e Licença de Imagem</h2>
+        <p>
+          Ao publicar fotos, vídeos ou informações de capturas e locais no Fishgada, o usuário concede à plataforma uma licença perpétua, global e irrevogável para utilizar, reproduzir e publicar tal conteúdo em seus canais de comunicação, redes sociais e materiais promocionais, visando o crescimento da comunidade. Todas as informações inseridas pelos usuários passam a ser de uso da Fishgada.
+        </p>
+      </section>
     </LegalLayout>
   )
 }

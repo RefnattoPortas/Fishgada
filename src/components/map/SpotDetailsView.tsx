@@ -559,32 +559,51 @@ export default function SpotDetailsView({
               </section>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <section className="glass-elevated p-6 rounded-[32px] border border-white/5 space-y-5">
-                   <h4 className="text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-                     <Clock size={16} className="text-accent" /> Funcionamento
+                <section className="glass-elevated p-8 rounded-[40px] border border-white/5 space-y-6 bg-white/[0.02]">
+                   <h4 className="text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 mb-2">
+                     <Clock size={16} className="text-accent" /> Horários de Funcionamento
                    </h4>
-                   <div className="space-y-3">
-                      {spot.opening_hours?.split(' | ').map((part, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                          <span className="text-gray-500 font-bold uppercase text-[10px]">{part.split(': ')[0]}</span>
-                          <span className="text-white font-black">{part.split(': ')[1]}</span>
+                   <div className="space-y-4">
+                      {spot.opening_hours?.split(' | ').map((part, i) => {
+                        const [day, hours] = part.split(': ')
+                        const isWeekend = day.toLowerCase().includes('sáb') || day.toLowerCase().includes('dom')
+                        const isHoliday = day.toLowerCase().includes('feriado')
+                        
+                        return (
+                          <div key={i} className="flex justify-between items-center group">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-1.5 h-1.5 rounded-full ${isHoliday ? 'bg-amber-500 animate-pulse' : isWeekend ? 'bg-cyan-500' : 'bg-gray-700'}`} />
+                              <span className={`text-[11px] font-black uppercase tracking-wider ${isHoliday ? 'text-amber-500' : isWeekend ? 'text-gray-300' : 'text-gray-500'}`}>
+                                {day}
+                              </span>
+                            </div>
+                            <span className="text-xs font-black text-white italic group-hover:text-accent transition-colors">{hours}</span>
+                          </div>
+                        )
+                      }) || (
+                        <div className="py-6 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Consulte o local via telefone</p>
                         </div>
-                      )) || <p className="text-sm text-gray-300 font-medium leading-relaxed">Consulte o local via telefone.</p>}
+                      )}
                    </div>
                 </section>
 
-                <section className="glass-elevated p-6 rounded-[32px] border border-white/5 space-y-4">
-                   <h4 className="text-accent font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                <section className="glass-elevated p-8 rounded-[40px] border border-white/5 space-y-6 bg-white/[0.02] flex flex-col justify-between">
+                   <h4 className="text-accent font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2">
                      <TrendingUp size={16} /> Preços Base
                    </h4>
-                   <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Entrada:</span>
-                        <span className="text-white font-bold">R$ {(spot.resort_prices as any)?.entry || '--'}</span>
+                   <div className="space-y-5 flex-1 flex flex-col justify-center">
+                      <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Entrada / Diária</span>
+                        <span className="text-xl font-black text-white italic">R$ {(spot.resort_prices as any)?.entry || '--'}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Quilo:</span>
-                        <span className="text-white font-bold">R$ {(spot.resort_prices as any)?.kg || '--'}</span>
+                      <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Pesca Esportiva</span>
+                        <span className="text-xl font-black text-white italic">R$ {(spot.resort_prices as any)?.fishing || '--'}</span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Preço do Quilo</span>
+                        <span className="text-xl font-black text-accent italic">R$ {(spot.resort_prices as any)?.kg || '--'}</span>
                       </div>
                    </div>
                 </section>
@@ -592,91 +611,103 @@ export default function SpotDetailsView({
 
               {/* Mural de Avisos */}
               {spot.resort_notice_board && (
-                <section className="bg-amber-500/10 border border-amber-500/30 p-6 rounded-2xl relative overflow-hidden">
-                   <Megaphone size={40} className="absolute -right-4 -bottom-4 text-amber-500/10 rotate-12" />
-                   <h4 className="text-amber-500 font-black text-[10px] uppercase tracking-[0.2em] mb-3">Mural de Avisos</h4>
-                   <p className="text-white font-medium text-sm leading-relaxed">
+                <section className="bg-amber-500/10 border border-amber-500/30 p-8 rounded-[32px] relative overflow-hidden group">
+                   <Megaphone size={40} className="absolute -right-4 -bottom-4 text-amber-500/10 rotate-12 group-hover:scale-110 transition-transform" />
+                   <h4 className="text-amber-500 font-black text-[10px] uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                      <Megaphone size={14} /> Comunicados Importantes
+                   </h4>
+                   <p className="text-white font-medium text-sm leading-relaxed relative z-10">
                      "{spot.resort_notice_board}"
                    </p>
                 </section>
               )}
 
+              {/* Módulo de Contato Profissional */}
               <section className="space-y-4">
-                <h3 className="form-section-title mb-4">
-                  <Phone size={14} /> Contato e Reservas
+                <h3 className="form-section-title mb-4 flex items-center gap-2">
+                  <Phone size={14} /> Canais de Contato e Reservas
                 </h3>
                 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-4">
                   {spot.phone && (
-                    <div className="glass-elevated p-5 rounded-2xl flex items-center justify-between group">
+                    <div className="glass-elevated p-6 rounded-[32px] flex items-center justify-between group bg-white/[0.02] border border-white/5">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white">
-                          <Phone size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-accent shadow-inner group-hover:scale-110 transition-transform">
+                          <Phone size={20} />
                         </div>
                         <div className="text-left">
-                          <p className="text-[10px] font-black text-gray-500 uppercase">Telefone</p>
-                          <p className="text-sm font-bold text-white">{spot.phone}</p>
+                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Fale Conosco</p>
+                          <p className="text-base font-black text-white italic tracking-tight">{spot.phone}</p>
                         </div>
                       </div>
                       <button 
-                        onClick={() => window.open(`tel:${spot.phone}`)}
-                        className="btn-secondary px-4 py-2 text-[10px] font-black rounded-xl"
+                        onClick={() => window.open(`tel:${spot.phone?.replace(/\D/g, '')}`)}
+                        className="px-6 py-3 bg-accent text-dark font-black text-[10px] rounded-2xl uppercase tracking-widest shadow-xl shadow-accent/10 hover:scale-105 active:scale-95 transition-all"
                       >
-                        LIGAR
+                        Ligar Agora
                       </button>
                     </div>
                   )}
 
-                  {/* WhatsApp (extraído da infra ou do telefone) */}
-                  {((spot as any).resort_infrastructure?.whatsapp || spot.phone) && (
-                    <button 
-                      onClick={() => {
-                        const zap = (spot as any).resort_infrastructure?.whatsapp || spot.phone
-                        const cleanZap = zap?.replace(/\D/g, '')
+                  {/* WhatsApp de Reservas */}
+                  <button 
+                    onClick={() => {
+                        const cleanZap = (spot as any).resort_infrastructure?.whatsapp?.replace(/\D/g, '') || spot.phone?.replace(/\D/g, '')
                         window.open(`https://wa.me/55${cleanZap}`, '_blank')
-                      }}
-                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-all group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#25D366] text-dark flex items-center justify-center">
-                          <MessageSquare size={18} fill="currentColor" />
+                    }}
+                    className="w-full flex items-center justify-between p-6 rounded-[36px] bg-[#25D366]/5 border border-[#25D366]/20 hover:bg-[#25D366]/10 transition-all group shadow-2xl relative overflow-hidden"
+                  >
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                         <MessageSquare size={80} className="-mr-10 -mt-10 rotate-12" />
+                      </div>
+                      <div className="flex items-center gap-5 relative z-10">
+                        <div className="w-14 h-14 rounded-2xl bg-[#25D366] text-dark flex items-center justify-center shadow-[0_0_30px_rgba(37,211,102,0.4)] group-hover:scale-110 transition-transform">
+                          <MessageSquare size={26} fill="currentColor" />
                         </div>
                         <div className="text-left">
-                          <p className="text-[10px] font-black text-[#25D366] uppercase">WhatsApp</p>
-                          <p className="text-sm font-black text-white">Chamar para Reservas</p>
+                          <h4 className="text-base font-black text-white uppercase tracking-tighter italic">WhatsApp Oficial</h4>
+                          <p className="text-[10px] font-bold text-[#25D366] uppercase tracking-[0.2em]">Falar com Reservas</p>
                         </div>
                       </div>
-                      <ChevronRight size={18} className="text-[#25D366]" />
-                    </button>
-                  )}
+                      <ChevronRight size={24} className="text-[#25D366] group-hover:translate-x-2 transition-transform" />
+                  </button>
+                </div>
+                
+                {/* Redes Sociais e Outros */}
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => {
+                      const handle = (spot as any).resort_infrastructure?.instagram || spot.instagram?.replace('@', '')
+                      if (handle) window.open(`https://instagram.com/${handle}`, '_blank')
+                    }}
+                    className="flex flex-col items-center gap-4 p-8 rounded-[40px] glass-elevated border border-white/5 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all group relative overflow-hidden"
+                  >
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition-all" />
+                    <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 transition-all group-hover:scale-110 shadow-lg">
+                       <Instagram size={28} />
+                    </div>
+                    <div className="text-center">
+                       <span className="block text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-1 group-hover:text-white">Instagram</span>
+                       <span className="text-[9px] font-black text-rose-500/80 uppercase">Ver Perfil</span>
+                    </div>
+                  </button>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {spot.instagram && (
-                      <button 
-                        onClick={() => {
-                          const handle = spot.instagram?.replace('@', '')
-                          window.open(`https://instagram.com/${handle}`, '_blank')
-                        }}
-                        className="flex items-center gap-3 p-4 rounded-2xl glass-elevated border border-white/10 hover:bg-white/5 transition-all"
-                      >
-                        <Instagram size={18} className="text-rose-400" />
-                        <span className="text-[10px] font-black uppercase text-white">Instagram</span>
-                      </button>
-                    )}
-
-                    {((spot as any).resort_infrastructure?.email || spot.website?.includes('@')) && (
-                      <button 
-                        onClick={() => {
-                          const email = (spot as any).resort_infrastructure?.email || spot.website
-                          window.open(`mailto:${email}`, '_blank')
-                        }}
-                        className="flex items-center gap-3 p-4 rounded-2xl glass-elevated border border-white/10 hover:bg-white/5 transition-all"
-                      >
-                        <Bell size={18} className="text-blue-400" />
-                        <span className="text-[10px] font-black uppercase text-white">E-mail</span>
-                      </button>
-                    )}
-                  </div>
+                  <button 
+                    onClick={() => {
+                      const email = (spot as any).resort_infrastructure?.email || spot.website
+                      if (email) window.open(`mailto:${email}`, '_blank')
+                    }}
+                    className="flex flex-col items-center gap-4 p-8 rounded-[40px] glass-elevated border border-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all group relative overflow-hidden"
+                  >
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all" />
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 transition-all group-hover:scale-110 shadow-lg">
+                       <Calendar size={28} />
+                    </div>
+                    <div className="text-center">
+                       <span className="block text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-1 group-hover:text-white">E-mail</span>
+                       <span className="text-[9px] font-black text-blue-400/80 uppercase">Contatar</span>
+                    </div>
+                  </button>
                 </div>
               </section>
 

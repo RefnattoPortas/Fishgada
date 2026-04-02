@@ -178,6 +178,11 @@ export default function NewCaptureForm({
   const handleSave = async () => {
     if (!data.species) return
     
+    if (userId === 'guest-user') {
+      alert('Você precisa estar logado para registrar capturas!')
+      return
+    }
+    
     // Inicia o estado de salvamento
     setSaving(true)
 
@@ -422,25 +427,30 @@ export default function NewCaptureForm({
                 <label className="label"><Camera size={12} /> Foto da Captura</label>
                 
                 {!photoPreview ? (
-                  <label 
+                  <div 
+                    onClick={() => document.getElementById('photo-upload-input')?.click()}
                     className="btn-secondary" 
-                    style={{ width: '100%', padding: '16px', cursor: 'pointer', borderStyle: 'dashed', position: 'relative', overflow: 'hidden', display: 'flex' }}
+                    style={{ width: '100%', padding: '24px', cursor: 'pointer', borderStyle: 'dashed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
                   >
                     <input 
+                      id="photo-upload-input"
                       type="file" 
                       accept="image/*" 
                       onChange={handlePhotoSelect} 
-                      style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', left: 0, top: 0, cursor: 'pointer' }}
+                      style={{ display: 'none' }}
                     />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
-                      <div style={{ padding: 12, background: 'var(--color-bg-secondary)', borderRadius: '50%' }}>
-                        <Camera size={26} color="var(--color-text-secondary)" />
-                      </div>
-                      <span style={{ fontSize: 14, color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                        Escolher Foto ou Abrir Câmera
+                    <div style={{ padding: 16, background: 'var(--color-accent-glow)', borderRadius: '50%', color: 'var(--color-accent-primary)' }}>
+                      <Camera size={32} />
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: 14, color: 'white', fontWeight: 800, display: 'block', marginBottom: 4 }}>
+                        CLIQUE PARA SELECIONAR FOTO
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                         Galeria ou Câmera
                       </span>
                     </div>
-                  </label>
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 12, background: 'var(--color-bg-elevated)', borderRadius: 12, border: '1px solid var(--color-border)' }}>
                     {/* Miniatura Clicável */}
@@ -448,7 +458,7 @@ export default function NewCaptureForm({
                       onClick={() => setShowFullPhoto(true)}
                       style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden', borderRadius: 8, border: '2px solid var(--color-accent-primary)' }}
                     >
-                      <img src={photoPreview} alt="Preview" style={{ width: 84, height: 84, objectFit: 'cover', display: 'block' }} />
+                      <img src={photoPreview || undefined} alt="Preview" style={{ width: 84, height: 84, objectFit: 'cover', display: 'block' }} />
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                          <span style={{ fontSize: 24 }}>🔍</span>
                       </div>

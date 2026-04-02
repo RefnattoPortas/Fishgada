@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
-import { User, Trophy, Fish, MapPin, Calendar, Star, TrendingUp, Award, Clock, Warehouse, Plus, ArrowRight, Megaphone, Utensils } from 'lucide-react'
+import { User, Trophy, Fish, MapPin, Calendar, Star, TrendingUp, Award, Clock, Warehouse, Plus, ArrowRight, Megaphone, Utensils, MessageSquare, Scale, Ruler, ChevronRight, Image as ImageIcon, Info, Loader2, AlertCircle, Heart, Share2 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { getRankByLevel } from '@/lib/utils/ranks'
 import NewResortForm from '@/components/map/NewResortForm'
+import dynamic from 'next/dynamic'
+
+const TrophyCardModal = dynamic(() => import('@/components/social/TrophyCardModal'), { ssr: false })
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null)
@@ -24,7 +27,13 @@ export default function ProfilePage() {
   const [showResortForm, setShowResortForm] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [followedResorts, setFollowedResorts] = useState<any[]>([])
-  const [profileSubTab, setProfileSubTab] = useState<'mural' | 'inscriptions' | 'achievements'>('mural')
+  const [profileSubTab, setProfileSubTab] = useState<'mural' | 'captures' | 'fishdex' | 'inscriptions' | 'achievements'>('mural')
+  const [userCaptures, setUserCaptures] = useState<any[]>([])
+  const [species, setSpecies] = useState<any[]>([])
+  const [selectedSpecies, setSelectedSpecies] = useState<any | null>(null)
+  const [selectedSpotForTrophy, setSelectedSpotForTrophy] = useState<any>(null)
+  const [visibleFeedCount, setVisibleFeedCount] = useState(4)
+  const feedSentinelRef = useRef<HTMLDivElement>(null)
 
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -34,14 +43,36 @@ export default function ProfilePage() {
     state: ''
   })
 
+  // Infinite scroll observer for feed
+  const loadMoreFeed = useCallback(() => {
+    setVisibleFeedCount(prev => prev + 4)
+  }, [])
+
+  useEffect(() => {
+    const sentinel = feedSentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMoreFeed()
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loadMoreFeed, followedResorts, userCaptures])
+
   useEffect(() => {
     fetchProfileData()
     fetchFollowedResorts()
+    fetchSpecies()
     
     // Check tab from URL
     const params = new URLSearchParams(window.location.search)
     if (params.get('tab') === 'business') {
       setActiveTab('business')
+    }
+    if (params.get('subtab')) {
+      setProfileSubTab(params.get('subtab') as any)
     }
 
     const handleOnline = () => setIsOnline(navigator.onLine)
@@ -112,19 +143,21 @@ export default function ProfilePage() {
         setInscriptions(userInscriptions)
       }
 
-      // Fetch Captures for Stats
-      const { data: captures } = await supabase
+      // Fetch Full Captures for Feed
+      const { data: fullCaptures } = await supabase
         .from('captures')
-        .select('species, weight_kg')
+        .select('*, spots(title)')
         .eq('user_id', user.id)
+        .order('captured_at', { ascending: false })
 
-      if (captures && captures.length > 0) {
-        const captureList = captures as any[]
+      if (fullCaptures) {
+        setUserCaptures(fullCaptures)
+        const captureList = fullCaptures as any[]
         const uniqueSpecies = new Set(captureList.map((c: any) => c.species)).size
         const totalWeight = captureList.reduce((acc: number, c: any) => acc + (c.weight_kg || 0), 0)
         
         setStats({
-          total_captures: captures.length,
+          total_captures: fullCaptures.length,
           total_weight: Math.round(totalWeight * 10) / 10,
           unique_species: uniqueSpecies,
           medals_count: userAch?.length || 0
@@ -139,6 +172,55 @@ export default function ProfilePage() {
       setIsResortOwner(!!resort && resort.length > 0)
     }
     setLoading(false)
+  }
+
+  const fetchSpecies = async () => {
+    try {
+      const supabase = getSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: speciesData } = await supabase
+        .from('species')
+        .select('*')
+        .eq('is_active', true)
+        
+      const { data: capturesData } = await supabase
+        .from('captures')
+        .select('id, species, length_cm, weight_kg, captured_at, photo_url')
+        .eq('user_id', user.id)
+
+      if (speciesData) {
+        const userCaptures = (capturesData || []) as any[]
+        const mergedAlbum = speciesData.map((s: any) => {
+          const myCatches = userCaptures.filter((c: any) => {
+            const captName = c.species?.split(' (')[0].trim().toLowerCase();
+            const specName = s.nome_comum?.split(' (')[0].trim().toLowerCase();
+            return captName === specName;
+          })
+          
+          const highlightId = typeof window !== 'undefined' ? localStorage.getItem(`album_highlight_${s.nome_comum}`) : null
+          const highlightCatch = highlightId ? myCatches.find((c: any) => c.id === highlightId) : null
+          const userPhoto = highlightCatch?.photo_url || myCatches.find((c: any) => c.photo_url)?.photo_url
+
+          return {
+            ...s,
+            imagem_url: userPhoto || s.imagem_url,
+            total_capturas: myCatches.length,
+            maior_tamanho_capturado_cm: myCatches.length > 0 ? Math.max(...myCatches.map((c: any) => c.length_cm || 0)) : null,
+            maior_peso_capturado_kg: myCatches.length > 0 ? Math.max(...myCatches.map((c: any) => c.weight_kg || 0)) : null,
+          }
+        })
+        
+        setSpecies(mergedAlbum.sort((a, b) => {
+          if (a.total_capturas > 0 && b.total_capturas === 0) return -1;
+          if (a.total_capturas === 0 && b.total_capturas > 0) return 1;
+          return a.nome_comum.localeCompare(b.nome_comum);
+        }))
+      }
+    } catch (e) {
+      console.error('Erro ao buscar especies:', e)
+    }
   }
 
   const fetchFollowedResorts = async () => {
@@ -220,6 +302,23 @@ export default function ProfilePage() {
       <main className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12">
         <div className="max-w-5xl mx-auto space-y-10 fade-in">
           
+          {!user ? (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-8 glass-elevated rounded-[40px] p-12 border border-white/5">
+              <div className="w-24 h-24 rounded-full bg-accent/10 flex items-center justify-center text-accent">
+                <User size={48} />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter italic">Perfil de Pescador</h2>
+                <p className="text-gray-400 max-w-sm mx-auto uppercase text-xs font-bold tracking-widest leading-relaxed">
+                  Faça login para ver suas estatísticas, conquistas e gerenciar seus pesqueiros.
+                </p>
+              </div>
+              <a href="/login" className="btn-primary px-12 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-accent/20">
+                Acessar Minha Conta
+              </a>
+            </div>
+          ) : (
+            <>
           {/* Tab Navigation */}
           <div className="flex items-center gap-6 border-b border-white/5 pb-1">
              <button 
@@ -377,6 +476,8 @@ export default function ProfilePage() {
                 <div className="flex gap-2 p-1.5 glass-elevated rounded-2xl border border-white/5 w-full md:w-fit overflow-x-auto no-scrollbar">
                   {[
                     { id: 'mural', label: 'Feed / Mural', icon: Megaphone },
+                    { id: 'captures', label: 'Minhas Capturas', icon: Fish },
+                    { id: 'fishdex', label: 'Álbum / Espécies', icon: Star },
                     { id: 'inscriptions', label: 'Torneios', icon: Trophy },
                     { id: 'achievements', label: 'Medalhas', icon: Award },
                   ].map((tab) => (
@@ -395,90 +496,220 @@ export default function ProfilePage() {
                   ))}
                 </div>
               </div>
-
+              
               {/* Sub-Tab Content */}
               <div className="fade-in pt-4">
                 {profileSubTab === 'mural' && (
                   <div className="max-w-3xl mx-auto space-y-8">
-                    {followedResorts.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-8">
-                        {followedResorts.map(resort => (
-                          <div key={resort.id} className="relative glass-elevated rounded-[40px] border border-white/5 overflow-hidden flex flex-col group hover:border-accent/20 transition-all shadow-2xl">
-                            {/* Card Header (Pesqueiro Info) */}
-                            <div className="flex items-center justify-between p-6 pb-4 border-b border-white/5">
-                               <div className="flex items-center gap-4">
-                                  <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center p-2.5 shadow-inner">
-                                     {resort.photo_url ? (
-                                       <img src={resort.photo_url} className="w-full h-full object-cover rounded-lg" />
-                                     ) : <Warehouse size={24} className="text-accent" />}
-                                  </div>
-                                  <div>
-                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">{resort.title}</h4>
-                                    <div className="flex items-center gap-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                       <span className="flex items-center gap-1"><MapPin size={10} className="text-accent"/> {resort.water_type === 'river' ? 'Rio' : 'Lagos'}</span>
-                                       {resort.is_resort_partner && <span className="text-purple-400">◆ Parceiro Oficial</span>}
-                                    </div>
-                                  </div>
-                               </div>
-                               {resort.resort_active_highlight && (
-                                 <div className="hidden md:flex flex-col items-end">
-                                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">O que está batendo?</span>
-                                    <span className="text-xs font-black text-amber-400 uppercase bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20 shadow-[0_0_15px_rgba(251,191,36,0.1)]">
-                                      🔥 {resort.resort_active_highlight}
-                                    </span>
-                                 </div>
-                               )}
-                            </div>
+                    {(followedResorts.length > 0 || userCaptures.length > 0) ? (
+                      <>
+                        <div className="grid grid-cols-1 gap-8">
+                          {/* Feed Items (Merged & Sorted) — Paginated */}
+                          {[
+                            ...followedResorts.map(r => ({ type: 'resort', date: r.created_at, data: r })),
+                            ...userCaptures.map(c => ({ type: 'capture', date: c.captured_at, data: c })),
+                          ].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, visibleFeedCount).map((item, idx) => (
+                            item.type === 'resort' ? (
+                              <div key={`resort-${item.data.id}-${idx}`} className="relative glass-elevated rounded-[40px] border border-white/5 overflow-hidden flex flex-col group hover:border-accent/20 transition-all shadow-2xl">
+                                {/* Card Header (Pesqueiro Info) */}
+                                <div className="flex items-center justify-between p-6 pb-4 border-b border-white/5">
+                                   <div className="flex items-center gap-4">
+                                      <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center p-2.5 shadow-inner">
+                                         {item.data.photo_url ? (
+                                           <img src={item.data.photo_url} className="w-full h-full object-cover rounded-lg" />
+                                         ) : <Warehouse size={24} className="text-accent" />}
+                                      </div>
+                                      <div>
+                                        <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">{item.data.title}</h4>
+                                        <div className="flex items-center gap-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                           <span className="flex items-center gap-1"><MapPin size={10} className="text-accent"/> {item.data.water_type === 'river' ? 'Rio' : 'Lagos'}</span>
+                                           {item.data.is_resort_partner && <span className="text-purple-400">◆ Parceiro Oficial</span>}
+                                        </div>
+                                      </div>
+                                   </div>
+                                   {item.data.resort_active_highlight && (
+                                     <div className="hidden md:flex flex-col items-end">
+                                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">O que está batendo?</span>
+                                        <span className="text-xs font-black text-amber-400 uppercase bg-amber-400/10 px-3 py-1.5 rounded-xl border border-amber-400/20 shadow-[0_0_15px_rgba(251,191,36,0.1)]">
+                                          🔥 {item.data.resort_active_highlight}
+                                        </span>
+                                     </div>
+                                   )}
+                                </div>
 
-                            {/* Main Content Area (Notice Board) */}
-                            <div className="p-8 space-y-6 relative">
-                               {/* Mural Box */}
-                               {resort.resort_notice_board ? (
-                                 <div className="relative">
-                                    <div className="absolute -left-2 top-0 bottom-0 w-1 bg-accent/30 rounded-full" />
-                                    <p className="text-lg md:text-xl text-gray-200 font-medium leading-relaxed italic pl-6">
-                                      "{resort.resort_notice_board}"
-                                    </p>
-                                 </div>
-                               ) : (
-                                 <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
-                                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum aviso no momento</p>
-                                 </div>
-                               )}
+                                {/* Main Content Area (Notice Board) */}
+                                <div className="p-8 space-y-6 relative">
+                                   {/* Mural Box */}
+                                   {item.data.resort_notice_board ? (
+                                     <div className="relative">
+                                        <div className="absolute -left-2 top-0 bottom-0 w-1 bg-accent/30 rounded-full" />
+                                        <p className="text-lg md:text-xl text-gray-200 font-medium leading-relaxed italic pl-6">
+                                          "{item.data.resort_notice_board}"
+                                        </p>
+                                     </div>
+                                   ) : (
+                                     <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Nenhum aviso no momento</p>
+                                     </div>
+                                   )}
 
-                               {/* Infrastructure Shortcuts */}
-                               <div className="flex flex-wrap gap-3 pt-2">
-                                  {resort.resort_infrastructure?.restaurante && (
-                                    <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
-                                      <Utensils size={14} className="text-accent" /> Restaurante
-                                    </div>
-                                  )}
-                                  {resort.resort_infrastructure?.pousada && (
-                                    <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
-                                      <Warehouse size={14} className="text-accent" /> Hospedagem
-                                    </div>
-                                  )}
-                               </div>
-                            </div>
+                                   {/* Infrastructure Shortcuts */}
+                                   <div className="flex flex-wrap gap-3 pt-2">
+                                      {item.data.resort_infrastructure?.restaurante && (
+                                        <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
+                                          <Utensils size={14} className="text-accent" /> Restaurante
+                                        </div>
+                                      )}
+                                      {item.data.resort_infrastructure?.pousada && (
+                                        <div className="bg-white/5 border border-white/5 px-4 py-2 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
+                                          <Warehouse size={14} className="text-accent" /> Hospedagem
+                                        </div>
+                                      )}
+                                   </div>
+                                </div>
 
-                            {/* Card Footer (Actions) */}
-                            <div className="px-6 py-5 bg-white/5 border-t border-white/5 flex items-center justify-between">
-                               <div className="flex gap-4">
-                                  <div className="flex flex-col">
-                                     <span className="text-[9px] font-black text-gray-600 uppercase">Capturas registradas</span>
-                                     <span className="text-sm font-black text-white">{resort.total_captures || 0}</span>
-                                  </div>
-                               </div>
-                               <a 
-                                  href={`/radar?selectSpot=${resort.id}`} 
-                                  className="px-6 py-2.5 bg-accent/10 border border-accent/30 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:text-dark transition-all flex items-center gap-2 group"
-                               >
-                                  Ver no Mapa <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                               </a>
+                                {/* Card Footer (Actions) */}
+                                <div className="px-8 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+                                   <div className="flex gap-6">
+                                      <button className="flex items-center gap-2 group transition-all">
+                                         <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-rose-500/10 group-hover:text-rose-500 transition-all text-gray-500">
+                                           <Heart size={18} />
+                                         </div>
+                                         <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.likes_count || 0}</span>
+                                      </button>
+                                      <button className="flex items-center gap-2 group transition-all">
+                                         <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/10 group-hover:text-cyan-500 transition-all text-gray-500">
+                                           <MessageSquare size={18} />
+                                         </div>
+                                         <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.comments_count || 0}</span>
+                                      </button>
+                                   </div>
+                                   <a 
+                                      href={`/radar?selectSpot=${item.data.id}`} 
+                                      className="px-6 py-2.5 bg-accent/10 border border-accent/20 text-accent rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-accent hover:text-dark transition-all flex items-center gap-2 group"
+                                   >
+                                      Ver no Mapa <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                   </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div key={`capture-${item.data.id}-${idx}`} className="relative glass-elevated rounded-[40px] border border-white/5 overflow-hidden flex flex-col hover:border-accent/20 transition-all shadow-2xl">
+                                 {/* Capture Header (User & Spot) */}
+                                 <div className="flex items-center justify-between p-6">
+                                    <div className="flex items-center gap-3">
+                                       <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                                          <Fish size={20} />
+                                       </div>
+                                       <div>
+                                          <h4 className="text-sm font-black text-white uppercase tracking-wider">{item.data.species}</h4>
+                                          <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                             <MapPin size={10} /> {item.data.spots?.title || 'Pesqueiro Parceiro'} • {new Date(item.data.captured_at).toLocaleDateString('pt-BR')}
+                                          </p>
+                                       </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                       {item.data.is_trophy && <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">🏆 Troféu</span>}
+                                       {item.data.was_released && <span className="bg-accent/10 text-accent border border-accent/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">♻️ Solto</span>}
+                                    </div>
+                                 </div>
+
+                                 {/* Capture Photo */}
+                                 {item.data.photo_url ? (
+                                    <div className="px-6">
+                                       <div className="relative aspect-video rounded-3xl overflow-hidden border border-white/10 group">
+                                          <img src={item.data.photo_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                          <div className="absolute bottom-6 left-6 flex gap-4">
+                                             {item.data.weight_kg && (
+                                                <div className="flex flex-col">
+                                                   <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1"><Scale size={12} /> Peso</span>
+                                                   <span className="text-xl font-black text-white italic">{item.data.weight_kg}kg</span>
+                                                </div>
+                                             )}
+                                             {item.data.length_cm && (
+                                                <div className="flex flex-col border-l border-white/20 pl-4">
+                                                   <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1"><Ruler size={12} /> Compr.</span>
+                                                   <span className="text-xl font-black text-white italic">{item.data.length_cm}cm</span>
+                                                </div>
+                                             )}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 ) : (
+                                   <div className="px-6">
+                                      <div className="h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/5">
+                                         <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest italic">Captura sem foto registrada 🎣</span>
+                                      </div>
+                                   </div>
+                                 )}
+
+                                 {/* Capture Notes & Social */}
+                                 <div className="px-8 pb-8 pt-4 space-y-6">
+                                    {item.data.notes && (
+                                       <p className="text-sm text-gray-400 font-medium leading-relaxed italic border-l-2 border-accent/30 pl-4 bg-accent/5 py-3 rounded-r-2xl">
+                                          "{item.data.notes}"
+                                       </p>
+                                    )}
+
+                                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                       <div className="flex gap-6">
+                                          <button className="flex items-center gap-2 group transition-all">
+                                             <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-rose-500/10 group-hover:text-rose-500 transition-all text-gray-500">
+                                               <Heart size={18} />
+                                             </div>
+                                             <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.likes_count || 0}</span>
+                                          </button>
+                                          <button className="flex items-center gap-2 group transition-all">
+                                             <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/10 group-hover:text-cyan-500 transition-all text-gray-500">
+                                               <MessageSquare size={18} />
+                                             </div>
+                                             <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.comments_count || 0}</span>
+                                          </button>
+                                       </div>
+                                       <button className="text-gray-500 hover:text-white transition-colors">
+                                          <Share2 size={18} />
+                                       </button>
+                                    </div>
+                                 </div>
+                                 {item.data.notes && (
+                                    <div className="p-6 pt-4">
+                                       <p className="text-sm text-gray-400 font-medium italic leading-relaxed">
+                                          "{item.data.notes}"
+                                       </p>
+                                    </div>
+                                 )}
+
+                                 {/* Footer (Actions) */}
+                                 <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/2">
+                                    <div className="flex items-center gap-6">
+                                       <button className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors group">
+                                          <Star size={16} className="group-hover:text-amber-400 transition-colors" />
+                                          <span className="text-[10px] font-black">Curtir</span>
+                                       </button>
+                                       <button className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors">
+                                          <MessageSquare size={16} />
+                                          <span className="text-[10px] font-black">Comentar</span>
+                                       </button>
+                                    </div>
+                                    <button className="text-gray-600 hover:text-white transition-colors">
+                                       <Plus size={16} />
+                                    </button>
+                                 </div>
+                              </div>
+                            )
+                          ))}
+                        </div>
+
+                        {/* Sentinel for infinite scroll */}
+                        {visibleFeedCount < (followedResorts.length + userCaptures.length) && (
+                          <div ref={feedSentinelRef} className="flex items-center justify-center py-10">
+                            <div className="flex items-center gap-3 text-gray-500">
+                              <Loader2 size={20} className="animate-spin text-accent" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Carregando mais...</span>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     ) : (
                       <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.02]">
                         <Megaphone size={48} className="text-gray-700 mx-auto mb-6 opacity-50" />
@@ -486,6 +717,121 @@ export default function ProfilePage() {
                         <p className="text-gray-500 text-xs font-bold uppercase tracking-widest max-w-xs mx-auto">Siga pesqueiros parceiros no mapa para receber avisos e promoções em tempo real.</p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {profileSubTab === 'captures' && (
+                  <div className="max-w-5xl mx-auto pb-10">
+                    {userCaptures.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {userCaptures.map((capture) => (
+                          <div key={capture.id} className="glass-elevated group rounded-3xl overflow-hidden border border-white/5 hover:border-accent/30 transition-all hover:shadow-[0_0_30px_rgba(0,212,170,0.1)] flex flex-col">
+                            <div className="h-44 relative bg-[#060a12] overflow-hidden flex-shrink-0">
+                                {capture.is_trophy && (
+                                  <div className="absolute top-3 left-3 z-10 bg-amber-500 text-black text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest shadow-lg flex items-center gap-1">
+                                    <Trophy size={10} /> Troféu
+                                  </div>
+                                )}
+                                {capture.photo_url ? (
+                                  <img src={capture.photo_url} alt={capture.species} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity">
+                                    <Fish size={40} className="rotate-12" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1a] via-transparent to-transparent opacity-90" />
+                                <div className="absolute bottom-3 left-4 right-4 text-white">
+                                  <h3 className="font-black text-base truncate tracking-tight">{capture.species}</h3>
+                                </div>
+                            </div>
+
+                            <div className="p-4 flex-1 flex flex-col gap-4">
+                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                  <div className="bg-white/5 rounded-xl p-2 flex items-center gap-2 border border-white/5">
+                                     <Scale size={13} className="text-accent" />
+                                     <div className="flex flex-col">
+                                       <span className="text-[8px] font-black uppercase text-gray-500 tracking-widest leading-none">Peso</span>
+                                       <span className="text-xs font-bold text-white mt-0.5">{capture.weight_kg || 0} kg</span>
+                                     </div>
+                                  </div>
+                                  <div className="bg-white/5 rounded-xl p-2 flex items-center gap-2 border border-white/5">
+                                    <Calendar size={13} className="text-accent" />
+                                    <div className="flex flex-col">
+                                      <span className="text-[8px] font-black uppercase text-gray-500 tracking-widest leading-none">Data</span>
+                                      <span className="text-xs font-bold text-white mt-0.5">
+                                        {new Date(capture.captured_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2 text-gray-400 mt-1">
+                                  <MapPin size={13} className="text-accent/70 mt-0.5 flex-shrink-0" />
+                                  <span className="text-[10px] font-semibold leading-relaxed line-clamp-1">{capture.spots?.title || 'Pesqueiro'}</span>
+                                </div>
+                                <div className="mt-auto pt-2 flex flex-col gap-2">
+                                   <button 
+                                     onClick={() => setSelectedSpotForTrophy(capture.spots)}
+                                     className="w-full py-2.5 bg-white/5 hover:bg-accent text-white hover:text-dark rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                                   >
+                                     <Trophy size={13} /> Gerar Troféu
+                                   </button>
+                                </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.02]">
+                        <Fish size={48} className="text-gray-700 mx-auto mb-6 opacity-50" />
+                        <h3 className="text-white font-black uppercase tracking-tighter text-xl mb-2 italic">Sem Capturas</h3>
+                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Suas fisgadas registradas no mapa aparecerão detalhadamente aqui.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {profileSubTab === 'fishdex' && (
+                  <div className="max-w-6xl mx-auto space-y-8 pb-10">
+                     <div className="bg-gradient-to-r from-accent/20 to-brand/10 p-6 rounded-3xl border border-accent/20 relative overflow-hidden">
+                        <div className="relative z-10 flex flex-col gap-2">
+                           <h2 className="text-lg font-black text-white italic uppercase tracking-tighter">Álbum de Espécies 📖</h2>
+                           <p className="text-xs text-gray-400 font-medium leading-relaxed max-w-xl">
+                              Descubra todos os peixes do catálogo. Capture espécies diferentes para preencher seu álbum e ganhar medalhas exclusivas.
+                              <span className="block mt-1.5 text-accent font-black">{species.filter(s => s.total_capturas > 0).length} / {species.length} Descobertos</span>
+                           </p>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {species.map(s => {
+                          const isCaught = s.total_capturas > 0
+                          return (
+                            <div 
+                              key={s.id}
+                              onClick={() => setSelectedSpecies(s)}
+                              className={`relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 transform hover:scale-[1.02] border-2 group ${
+                                isCaught ? 'border-accent/40 bg-accent/5' : 'border-white/5 bg-gray-900/50 grayscale opacity-40 hover:opacity-100'
+                              }`}
+                            >
+                               <div className="absolute inset-x-0 top-6 bottom-[35%] flex items-center justify-center p-6">
+                                  <img 
+                                    src={s.imagem_url || 'https://cdn-icons-png.flaticon.com/512/2970/2970068.png'} 
+                                    className={`max-w-full max-h-full object-contain ${isCaught ? 'drop-shadow-[0_0_15px_rgba(0,183,168,0.4)]' : 'contrast-0 brightness-0'}`} 
+                                  />
+                               </div>
+                               <div className="absolute bottom-0 inset-x-0 p-4 pt-10 bg-gradient-to-t from-black via-black/80 to-transparent flex flex-col justify-end">
+                                  <h3 className={`font-black uppercase text-xs tracking-tight ${isCaught ? 'text-white' : 'text-zinc-600'}`}>{s.nome_comum}</h3>
+                                  <p className={`text-[8px] font-mono mt-0.5 ${isCaught ? 'text-accent' : 'text-zinc-700'}`}>{s.nome_cientifico}</p>
+                                </div>
+                               {isCaught && (
+                                 <div className="absolute top-3 right-3 bg-accent text-dark px-2 rounded-full text-[9px] font-black z-20 shadow-lg">
+                                    {s.total_capturas}x
+                                 </div>
+                               )}
+                            </div>
+                          )
+                        })}
+                     </div>
                   </div>
                 )}
 
@@ -561,22 +907,100 @@ export default function ProfilePage() {
                </div>
             </div>
           )}
-        </div>
+        </>
+      )}
 
-        {showResortForm && (
-           <NewResortForm 
-              userId={user?.id}
-              isOnline={isOnline}
-              onClose={() => setShowResortForm(false)}
-              onSuccess={() => { setShowResortForm(false); fetchProfileData(); }}
-           />
-        )}
+        </div>
       </main>
 
+      {showResortForm && (
+         <NewResortForm 
+            userId={user?.id}
+            isOnline={isOnline}
+            onClose={() => setShowResortForm(false)}
+            onSuccess={() => { setShowResortForm(false); fetchProfileData(); }}
+         />
+      )}
+
+      {/* MODAL FICHA TÉCNICA (Fishdex) */}
+      {selectedSpecies && (
+        <div 
+          className="fixed inset-0 z-[5000] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm fade-in p-4"
+          onClick={() => setSelectedSpecies(null)}
+        >
+          <div 
+            className="w-full max-w-lg bg-[#0a0f1a] sm:rounded-[40px] rounded-t-[40px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col max-h-[90vh] overflow-hidden"
+            onClick={e => e.stopPropagation()}
+            style={{ animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
+          >
+            <div className={`relative h-48 bg-gradient-to-br ${selectedSpecies.total_capturas > 0 ? 'from-accent/20 to-[#0a0f1a]' : 'from-gray-900 to-[#0a0f1a]'} p-8 flex flex-col justify-between overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-3xl rounded-full -mr-20 -mt-20" />
+              <div className="flex justify-between items-start relative z-10">
+                <div className="bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black text-white flex items-center gap-2 border border-white/10 uppercase tracking-widest">
+                  <MapPin size={12} className="text-accent" /> {selectedSpecies.habitat}
+                </div>
+              </div>
+              <div className="absolute bottom-[-10%] inset-x-0 flex justify-center pointer-events-none">
+                <img 
+                  src={selectedSpecies.imagem_url} 
+                  className={`h-40 object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)] ${selectedSpecies.total_capturas > 0 ? '' : 'brightness-0 opacity-20'}`}
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 custom-scrollbar">
+              <div className="text-center">
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">{selectedSpecies.nome_comum}</h2>
+                <p className="text-xs font-mono text-accent mt-2 uppercase tracking-widest">{selectedSpecies.nome_cientifico}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-white/5 p-5 rounded-[28px] border border-accent/20 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-accent font-black text-[10px] uppercase tracking-widest"><Info size={14} /> Dica do Pro</div>
+                  <p className="text-sm text-gray-300 leading-relaxed italic">&quot;{selectedSpecies.dica_pro}&quot;</p>
+                  {selectedSpecies.isca_favorita && (
+                    <div className="text-[10px] font-black text-gray-500 uppercase flex items-center gap-2 bg-black/40 px-3 py-2 rounded-xl border border-white/5 self-start">
+                      🎣 Iscas: <span className="text-white">{selectedSpecies.isca_favorita}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-1 group">
+                     <Trophy size={16} className="text-amber-500 mb-1" />
+                     <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Recorde I.G.F.A</span>
+                     <span className="text-sm font-black text-white">{selectedSpecies.peso_recorde_kg}kg</span>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex flex-col items-center gap-1">
+                     <Scale size={16} className="text-red-500 mb-1" />
+                     <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Tamanho Mínimo</span>
+                     <span className="text-sm font-black text-white">{selectedSpecies.tamanho_minimo_cm || '--'}cm</span>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={() => setSelectedSpecies(null)} className="btn-secondary w-full py-4 mt-4 font-black uppercase tracking-widest text-[10px]">Fechar Ficha</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Digital Trophy Card Modal */}
+      {selectedSpotForTrophy && user && (
+        <TrophyCardModal
+          isOpen={true}
+          onClose={() => setSelectedSpotForTrophy(null)}
+          spot={selectedSpotForTrophy}
+          userId={user.id}
+        />
+      )}
+
       <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 12px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; margin: 2px 0; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.5); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,212,170,0.8); border: 3px solid transparent; background-clip: padding-box; }
+        .custom-scrollbar { scrollbar-width: auto; scrollbar-color: rgba(0,212,170,0.5) rgba(255,255,255,0.05); }
       `}</style>
     </div>
   )

@@ -28,6 +28,13 @@ export default function SettingsPage() {
     if (savedMapTheme) setMapTheme(savedMapTheme)
   }, [])
 
+  const handleLogout = async () => {
+    if (!confirm('Tem certeza que deseja sair da sua conta?')) return
+    const supabase = getSupabaseClient()
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
   const fetchMapRegions = async () => {
     try {
       const regions = await getMapRegions()
@@ -240,7 +247,9 @@ export default function SettingsPage() {
                       <p className="text-white text-sm font-bold">Desconectar conta</p>
                       <p className="text-gray-500 text-xs text-balance">Isso removerá sua sessão atual deste dispositivo.</p>
                     </div>
-                    <button className="px-5 py-2.5 rounded-xl border border-red-500/30 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500/10 transition-colors flex items-center gap-2">
+                    <button 
+                      onClick={handleLogout}
+                      className="px-5 py-2.5 rounded-xl border border-red-500/30 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500/10 transition-colors flex items-center gap-2">
                       <LogOut size={14} /> Sair
                     </button>
                   </div>

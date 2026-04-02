@@ -324,9 +324,14 @@ function HomeContent() {
   }, [isOnline, pendingSync, user, fetchSpots])
 
   const handleNewCapture = useCallback((spotId: string) => {
+    if (!user) {
+      setPaywallFeature('Registrar Captura')
+      setShowPaywall(true)
+      return
+    }
     setActiveSpotId(spotId)
     setShowCaptureForm(true)
-  }, [])
+  }, [user])
 
   // Highlights de pesqueiros filtrados pela viewport atual do mapa
   const viewportHighlights = useMemo<ResortHighlight[]>(() => {
@@ -445,7 +450,14 @@ function HomeContent() {
           <button
             id="fab-new-capture"
             className="btn-primary"
-            onClick={() => setShowCaptureForm(true)}
+            onClick={() => {
+              if (!user) {
+                setPaywallFeature('Registrar Captura')
+                setShowPaywall(true)
+              } else {
+                setShowCaptureForm(true)
+              }
+            }}
             style={{
               width: 56, height: 56, borderRadius: 16, padding: 0,
               boxShadow: '0 8px 32px rgba(0, 212, 170, 0.4)',
@@ -486,7 +498,14 @@ function HomeContent() {
           <button
             id="fab-new-spot"
             className={`btn-secondary ${creationMode === 'spot' ? 'ring-2 ring-accent' : ''}`}
-            onClick={() => setCreationMode(creationMode === 'spot' ? null : 'spot')}
+            onClick={() => {
+              if (!user) {
+                setPaywallFeature('Adicionar Local')
+                setShowPaywall(true)
+              } else {
+                setCreationMode(creationMode === 'spot' ? null : 'spot')
+              }
+            }}
             style={{
               width: 56, height: 56, borderRadius: 16, padding: 0,
               boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
