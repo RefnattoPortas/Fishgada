@@ -172,12 +172,13 @@ export default function RankingPage() {
                   const position = idx + 1;
 
                   return (
-                    <div 
+                    <a 
+                      href={`/profile/${user.username}`}
                       key={user.id} 
-                      className={`group flex items-center gap-4 p-6 md:p-5 min-h-[110px] md:min-h-0 rounded-[32px] transition-all border ${
+                      className={`group flex items-center gap-4 p-6 md:p-5 min-h-[110px] md:min-h-0 rounded-[32px] transition-all border block cursor-pointer ${
                         isMe 
                           ? 'bg-accent/10 border-accent shadow-[0_0_25px_rgba(0,212,170,0.4)]' 
-                          : 'glass border-white/5 hover:bg-white/[0.05]'
+                          : 'glass border-white/5 hover:bg-white/[0.05] hover:border-accent/30'
                       }`}
                     >
                       {/* Rank Position */}
@@ -228,7 +229,7 @@ export default function RankingPage() {
                           Lv.{user.level || 1}
                         </div>
                       </div>
-                    </div>
+                    </a>
                   )
                 })}
 

@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [followedResorts, setFollowedResorts] = useState<any[]>([])
   const [profileSubTab, setProfileSubTab] = useState<'mural' | 'captures' | 'fishdex' | 'inscriptions' | 'achievements'>('mural')
   const [userCaptures, setUserCaptures] = useState<any[]>([])
+  const [friendsCaptures, setFriendsCaptures] = useState<any[]>([])
   const [species, setSpecies] = useState<any[]>([])
   const [selectedSpecies, setSelectedSpecies] = useState<any | null>(null)
   const [selectedSpotForTrophy, setSelectedSpotForTrophy] = useState<any>(null)
@@ -170,6 +171,20 @@ export default function ProfilePage() {
         .eq('owner_id', user.id)
         .limit(1)
       setIsResortOwner(!!resort && resort.length > 0)
+
+      // Fetch Friends Captures
+      const { data: followsData } = await supabase.from('follows').select('following_id').eq('follower_id', user.id)
+      if (followsData && followsData.length > 0) {
+        const followingIds = followsData.map((f: any) => f.following_id)
+        const { data: fCaptures } = await supabase
+          .from('captures')
+          .select('*, spots(title), profiles:user_id(username, display_name, avatar_url, level)')
+          .in('user_id', followingIds)
+          .order('captured_at', { ascending: false })
+          .limit(20)
+        
+        if (fCaptures) setFriendsCaptures(fCaptures)
+      }
     }
     setLoading(false)
   }
@@ -472,7 +487,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Sub-Tab Navigation - Centered and aligned with Mural Feed */}
-              <div className="max-w-3xl mx-auto w-full flex justify-center md:justify-start">
+              <div className="w-full flex justify-center md:justify-start">
                 <div className="flex gap-2 p-1.5 glass-elevated rounded-2xl border border-white/5 w-full md:w-fit overflow-x-auto no-scrollbar">
                   {[
                     { id: 'mural', label: 'Feed / Mural', icon: Megaphone },
@@ -500,14 +515,15 @@ export default function ProfilePage() {
               {/* Sub-Tab Content */}
               <div className="fade-in pt-4">
                 {profileSubTab === 'mural' && (
-                  <div className="max-w-3xl mx-auto space-y-8">
-                    {(followedResorts.length > 0 || userCaptures.length > 0) ? (
+                  <div className="w-full space-y-8">
+                    {(followedResorts.length > 0 || userCaptures.length > 0 || friendsCaptures.length > 0) ? (
                       <>
                         <div className="grid grid-cols-1 gap-8">
                           {/* Feed Items (Merged & Sorted) — Paginated */}
                           {[
                             ...followedResorts.map(r => ({ type: 'resort', date: r.created_at, data: r })),
                             ...userCaptures.map(c => ({ type: 'capture', date: c.captured_at, data: c })),
+                            ...friendsCaptures.map(c => ({ type: 'friend_capture', date: c.captured_at, data: c }))
                           ].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, visibleFeedCount).map((item, idx) => (
                             item.type === 'resort' ? (
                               <div key={`resort-${item.data.id}-${idx}`} className="relative glass-elevated rounded-[40px] border border-white/5 overflow-hidden flex flex-col group hover:border-accent/20 transition-all shadow-2xl">
@@ -597,19 +613,46 @@ export default function ProfilePage() {
                                  {/* Capture Header (User & Spot) */}
                                  <div className="flex items-center justify-between p-6">
                                     <div className="flex items-center gap-3">
-                                       <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
-                                          <Fish size={20} />
-                                       </div>
+                                       {item.type === 'friend_capture' ? (
+                                          <a href={`/profile/${item.data.profiles?.username}`} className="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center overflow-hidden hover:scale-105 transition-transform flex-shrink-0">
+                                            {item.data.profiles?.avatar_url ? (
+                                              <img src={item.data.profiles.avatar_url} className="w-full h-full object-cover" />
+                                            ) : (
+                                              <User size={20} className="text-gray-500" />
+                                            )}
+                                          </a>
+                                       ) : (
+                                          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent flex-shrink-0">
+                                            <Fish size={20} />
+                                          </div>
+                                       )}
                                        <div>
-                                          <h4 className="text-sm font-black text-white uppercase tracking-wider">{item.data.species}</h4>
-                                          <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
-                                             <MapPin size={10} /> {item.data.spots?.title || 'Pesqueiro Parceiro'} • {new Date(item.data.captured_at).toLocaleDateString('pt-BR')}
-                                          </p>
+                                          {item.type === 'friend_capture' ? (
+                                            <>
+                                              <h4 className="text-sm font-black text-white hover:text-accent transition-colors"><a href={`/profile/${item.data.profiles?.username}`}>{item.data.profiles?.display_name || item.data.profiles?.username || 'Pescador'}</a></h4>
+                                              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                                 <Fish size={10} className="text-accent flex-shrink-0" /> {item.data.species} • <MapPin size={10} className="flex-shrink-0" /> {item.data.spots?.title || 'Pesqueiro'}
+                                              </p>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <h4 className="text-sm font-black text-white uppercase tracking-wider">{item.data.species}</h4>
+                                              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                                 <MapPin size={10} className="flex-shrink-0" /> {item.data.spots?.title || 'Pesqueiro Parceiro'} • {new Date(item.data.captured_at).toLocaleDateString('pt-BR')}
+                                              </p>
+                                            </>
+                                          )}
                                        </div>
                                     </div>
                                     <div className="flex gap-2">
-                                       {item.data.is_trophy && <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">🏆 Troféu</span>}
-                                       {item.data.was_released && <span className="bg-accent/10 text-accent border border-accent/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">♻️ Solto</span>}
+                                       {item.type === 'friend_capture' ? (
+                                         <span className="text-[10px] text-gray-500 font-bold hidden sm:block">{new Date(item.data.captured_at).toLocaleDateString('pt-BR')}</span>
+                                       ) : (
+                                         <>
+                                           {item.data.is_trophy && <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">🏆 Troféu</span>}
+                                           {item.data.was_released && <span className="bg-accent/10 text-accent border border-accent/20 px-2 py-1 rounded-lg text-[8px] font-black uppercase">♻️ Solto</span>}
+                                         </>
+                                       )}
                                     </div>
                                  </div>
 
@@ -701,7 +744,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Sentinel for infinite scroll */}
-                        {visibleFeedCount < (followedResorts.length + userCaptures.length) && (
+                        {visibleFeedCount < (followedResorts.length + userCaptures.length + friendsCaptures.length) && (
                           <div ref={feedSentinelRef} className="flex items-center justify-center py-10">
                             <div className="flex items-center gap-3 text-gray-500">
                               <Loader2 size={20} className="animate-spin text-accent" />
@@ -721,7 +764,7 @@ export default function ProfilePage() {
                 )}
 
                 {profileSubTab === 'captures' && (
-                  <div className="max-w-5xl mx-auto pb-10">
+                  <div className="w-full pb-10">
                     {userCaptures.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {userCaptures.map((capture) => (
@@ -791,7 +834,7 @@ export default function ProfilePage() {
                 )}
 
                 {profileSubTab === 'fishdex' && (
-                  <div className="max-w-6xl mx-auto space-y-8 pb-10">
+                  <div className="w-full space-y-8 pb-10">
                      <div className="bg-gradient-to-r from-accent/20 to-brand/10 p-6 rounded-3xl border border-accent/20 relative overflow-hidden">
                         <div className="relative z-10 flex flex-col gap-2">
                            <h2 className="text-lg font-black text-white italic uppercase tracking-tighter">Álbum de Espécies 📖</h2>
