@@ -243,6 +243,35 @@ export default function ProfilePage() {
 
   const handleLike = async (itemId: string) => {
     if (!user) return
+    
+    // Optimistic UI Update
+    let isLiking = true
+    
+    const updateFeedList = (list: any[]) => list.map(c => {
+      if (c.id === itemId) {
+        const hasLiked = c.interactions?.some((i: any) => i.user_id === user.id && i.type === 'like')
+        isLiking = !hasLiked
+        
+        let newInteractions = c.interactions || []
+        if (isLiking) {
+          newInteractions = [...newInteractions, { user_id: user.id, type: 'like' }]
+        } else {
+          newInteractions = newInteractions.filter((i: any) => !(i.user_id === user.id && i.type === 'like'))
+        }
+        
+        return {
+          ...c,
+          likes_count: Math.max(0, (c.likes_count || 0) + (isLiking ? 1 : -1)),
+          interactions: newInteractions
+        }
+      }
+      return c
+    })
+
+    setUserCaptures(updateFeedList(userCaptures))
+    setFriendsCaptures(updateFeedList(friendsCaptures))
+
+    // Background Database Update
     const supabase = getSupabaseClient() as any
     try {
       const { data: existing } = await supabase
@@ -253,18 +282,18 @@ export default function ProfilePage() {
         .eq('type', 'like')
         .maybeSingle()
 
-      if (existing) {
+      if (existing && !isLiking) {
         await supabase.from('interactions').delete().eq('id', (existing as any).id)
-      } else {
+      } else if (!existing && isLiking) {
         await supabase.from('interactions').insert({
           user_id: user.id,
           capture_id: itemId,
           type: 'like'
         })
       }
-      fetchProfileData()
     } catch (e) {
       console.error('Erro ao curtir:', e)
+      // On error, let the next refresh correct the state.
     }
   }
 
