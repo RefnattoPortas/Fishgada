@@ -613,6 +613,7 @@ function HomeContent() {
           isOpen={showPaywall} 
           onClose={() => setShowPaywall(false)} 
           featureName={paywallFeature}
+          user={user}
         />
       )}
 
