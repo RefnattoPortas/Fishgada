@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
-import { User, Trophy, Fish, MapPin, TrendingUp, Award, UserPlus, UserMinus, Star, Megaphone, Scale, Calendar } from 'lucide-react'
+import { User, Trophy, Fish, MapPin, TrendingUp, Award, UserPlus, UserMinus, Star, Megaphone, Scale, Calendar, Heart, MessageSquare, Share2 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { getRankByLevel } from '@/lib/utils/ranks'
 import { Profile } from '@/types/database'
@@ -46,7 +46,7 @@ export default function OtherProfilePage({ params }: OtherProfilePageProps) {
         .from('profiles')
         .select('*')
         .eq('username', username)
-        .single()
+        .maybeSingle()
       
       if (pError) throw pError
       const profileData = pData as any
@@ -59,7 +59,7 @@ export default function OtherProfilePage({ params }: OtherProfilePageProps) {
           .select('*')
           .eq('follower_id', me.id)
           .eq('following_id', (profileData as any).id)
-          .single()
+          .maybeSingle()
         setIsFollowing(!!follow)
       }
 
@@ -111,6 +111,60 @@ export default function OtherProfilePage({ params }: OtherProfilePageProps) {
       console.error('Erro ao buscar perfil:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSpecies = async () => {
+  }
+
+  const handleLike = async (itemId: string) => {
+    if (!currentUser) return
+    try {
+      // Check if already liked
+      const { data: existing } = await supabase
+        .from('interactions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('capture_id', itemId)
+        .eq('type', 'like')
+        .maybeSingle()
+
+      if (existing) {
+        await supabase.from('interactions').delete().eq('id', (existing as any).id)
+      } else {
+        await supabase.from('interactions').insert({
+          user_id: currentUser.id,
+          capture_id: itemId,
+          type: 'like'
+        } as any)
+      }
+      fetchProfileData() // Refresh to update counts
+    } catch (e) {
+      console.error('Erro ao curtir:', e)
+    }
+  }
+
+  const handleLikeByItemType = (item: any) => {
+    // No perfil de outros, o mural mostra 'captures' diretamente na lista userCaptures
+    if (item.id) {
+       handleLike(item.id)
+    }
+  }
+
+  const handleComment = (itemId: string) => {
+    alert('Funcionalidade de comentários em breve! 🎣\nEstamos trabalhando para conectar você com mais pescadores.')
+  }
+
+  const handleShare = (itemId: string) => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Fishgada - Captura de ${profile?.display_name || profile?.username}`,
+        text: 'Veja essa fisgada incrível no Fishgada!',
+        url: window.location.href
+      }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copiado para a área de transferência! 🚀')
     }
   }
 
@@ -319,13 +373,43 @@ export default function OtherProfilePage({ params }: OtherProfilePageProps) {
                                   </div>
                                </div>
                              )}
-                             {capture.notes && (
-                                <div className="px-8 pb-8 pt-4">
-                                   <p className="text-sm text-gray-400 font-medium italic leading-relaxed border-l-2 border-accent/30 pl-4 bg-accent/5 py-3 rounded-r-2xl">
-                                      "{capture.notes}"
-                                   </p>
-                                </div>
-                             )}
+                                 <div className="px-8 pb-8 pt-4 space-y-4">
+                                    {capture.notes && (
+                                       <p className="text-sm text-gray-400 font-medium italic leading-relaxed border-l-2 border-accent/30 pl-4 bg-accent/5 py-3 rounded-r-2xl mb-4">
+                                          "{capture.notes}"
+                                       </p>
+                                    )}
+                                    
+                                    {/* Mural Actions */}
+                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                       <div className="flex gap-6">
+                                          <button 
+                                            onClick={() => handleLikeByItemType(capture)}
+                                            className="flex items-center gap-2 group transition-all"
+                                          >
+                                             <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-rose-500/10 group-hover:text-rose-500 transition-all text-gray-500">
+                                               <Heart size={18} />
+                                             </div>
+                                             <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{capture.likes_count || 0}</span>
+                                          </button>
+                                          <button 
+                                            onClick={() => handleComment(capture.id)}
+                                            className="flex items-center gap-2 group transition-all"
+                                          >
+                                             <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/10 group-hover:text-cyan-500 transition-all text-gray-500">
+                                               <MessageSquare size={18} />
+                                             </div>
+                                             <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{capture.comments_count || 0}</span>
+                                          </button>
+                                       </div>
+                                       <button 
+                                          onClick={() => handleShare(capture.id)}
+                                          className="text-gray-500 hover:text-white transition-colors"
+                                       >
+                                          <Share2 size={18} />
+                                       </button>
+                                    </div>
+                                 </div>
                           </div>
                        ))}
                     </div>

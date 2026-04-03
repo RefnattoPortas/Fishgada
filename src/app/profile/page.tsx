@@ -108,7 +108,7 @@ export default function ProfilePage() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
       setProfile(profileData)
 
       // Fetch Achievements
@@ -178,15 +178,70 @@ export default function ProfilePage() {
         const followingIds = followsData.map((f: any) => f.following_id)
         const { data: fCaptures } = await supabase
           .from('captures')
-          .select('*, spots(title), profiles:user_id(username, display_name, avatar_url, level)')
+          .select('*, spots(title), profiles:user_id(username, display_name, avatar_url, level), interactions(type, user_id)')
           .in('user_id', followingIds)
           .order('captured_at', { ascending: false })
           .limit(20)
         
-        if (fCaptures) setFriendsCaptures(fCaptures)
+        if (fCaptures) {
+          // Transform data to include interaction counts locally if needed,
+          // but our migration 012 already adds likes_count column.
+          setFriendsCaptures(fCaptures)
+        }
       }
     }
     setLoading(false)
+  }
+
+  const handleLike = async (itemId: string) => {
+    if (!user) return
+    const supabase = getSupabaseClient()
+    try {
+      // Check if already liked
+      const { data: existing } = await supabase
+        .from('interactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('capture_id', itemId)
+        .eq('type', 'like')
+        .maybeSingle()
+
+      if (existing) {
+        await supabase.from('interactions').delete().eq('id', (existing as any).id)
+      } else {
+        await supabase.from('interactions').insert({
+          user_id: user.id,
+          capture_id: itemId,
+          type: 'like'
+        } as any)
+      }
+      fetchProfileData() // Refresh to update counts
+    } catch (e) {
+      console.error('Erro ao curtir:', e)
+    }
+  }
+
+  const handleComment = (itemId: string) => {
+    alert('Funcionalidade de comentários em breve! 🎣\nEstamos trabalhando para conectar você com mais pescadores.')
+  }
+
+  const handleShare = (itemId: string) => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Fishgada - Confira esta captura!',
+        text: 'Veja essa fisgada incrível no Fishgada!',
+        url: window.location.href
+      }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Link copiado! Compartilhe com seus amigos. 🚀')
+    }
+  }
+
+  const handleLikeByItemType = (item: any) => {
+    if (item.data?.id) {
+       handleLike(item.data.id)
+    }
   }
 
   const fetchSpecies = async () => {
@@ -696,46 +751,57 @@ export default function ProfilePage() {
 
                                     <div className="flex items-center justify-between pt-2 border-t border-white/5">
                                        <div className="flex gap-6">
-                                          <button className="flex items-center gap-2 group transition-all">
+                                          <button 
+                                            onClick={() => handleLikeByItemType(item)}
+                                            className="flex items-center gap-2 group transition-all"
+                                          >
                                              <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-rose-500/10 group-hover:text-rose-500 transition-all text-gray-500">
                                                <Heart size={18} />
                                              </div>
                                              <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.likes_count || 0}</span>
                                           </button>
-                                          <button className="flex items-center gap-2 group transition-all">
+                                          <button 
+                                            onClick={() => handleComment(item.data.id)}
+                                            className="flex items-center gap-2 group transition-all"
+                                          >
                                              <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500/10 group-hover:text-cyan-500 transition-all text-gray-500">
                                                <MessageSquare size={18} />
                                              </div>
                                              <span className="text-xs font-black text-gray-500 group-hover:text-white uppercase tracking-widest">{item.data.comments_count || 0}</span>
                                           </button>
                                        </div>
-                                       <button className="text-gray-500 hover:text-white transition-colors">
+                                       <button 
+                                          onClick={() => handleShare(item.data.id)}
+                                          className="text-gray-500 hover:text-white transition-colors"
+                                       >
                                           <Share2 size={18} />
                                        </button>
                                     </div>
                                  </div>
-                                 {item.data.notes && (
-                                    <div className="p-6 pt-4">
-                                       <p className="text-sm text-gray-400 font-medium italic leading-relaxed">
-                                          "{item.data.notes}"
-                                       </p>
-                                    </div>
-                                 )}
 
                                  {/* Footer (Actions) */}
                                  <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/2">
                                     <div className="flex items-center gap-6">
-                                       <button className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors group">
+                                       <button 
+                                         onClick={() => handleLikeByItemType(item)}
+                                         className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors group"
+                                       >
                                           <Star size={16} className="group-hover:text-amber-400 transition-colors" />
                                           <span className="text-[10px] font-black">Curtir</span>
                                        </button>
-                                       <button className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors">
+                                       <button 
+                                         onClick={() => handleComment(item.data.id)}
+                                         className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors"
+                                       >
                                           <MessageSquare size={16} />
                                           <span className="text-[10px] font-black">Comentar</span>
                                        </button>
                                     </div>
-                                    <button className="text-gray-600 hover:text-white transition-colors">
-                                       <Plus size={16} />
+                                    <button 
+                                      onClick={() => handleShare(item.data.id)}
+                                      className="text-gray-600 hover:text-white transition-colors"
+                                    >
+                                       <Share2 size={16} />
                                     </button>
                                  </div>
                               </div>
