@@ -218,7 +218,8 @@ export default function SpotDetailsView({
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="relative h-64 md:h-80 flex-shrink-0 bg-dark overflow-hidden group">
+        <div className="flex-1 overflow-y-auto w-full pb-32 custom-scrollbar">
+          <div className="relative h-64 md:h-80 flex-shrink-0 bg-dark overflow-hidden group">
           {spot.is_resort && (spot as any).resort_photos && (spot as any).resort_photos.length > 0 ? (
             <div className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide">
               {(spot as any).resort_photos.map((url: string, i: number) => (
@@ -325,7 +326,7 @@ export default function SpotDetailsView({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-8 pb-40 custom-scrollbar">
+        <div className="px-6 py-8">
           
           {activeTab === 'insights' && (
             <div className="space-y-8 fade-in relative min-h-[400px]">
@@ -732,6 +733,7 @@ export default function SpotDetailsView({
             </div>
           )}
         </div>
+        </div>
 
         {/* Floating Action Button - New Capture */}
         <div className="absolute bottom-6 left-6 right-6 z-10">
@@ -783,14 +785,17 @@ export default function SpotDetailsView({
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.4);
           border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: var(--color-accent-primary);
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
