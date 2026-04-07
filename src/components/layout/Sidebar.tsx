@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import {
   Map, Fish, BookOpen, Trophy, User, Settings,
   ChevronRight, Wifi, WifiOff, Plus, Bell, LogOut,
-  LogIn, Award, Crown, Store, Building, Menu, X, Compass, Users
+  LogIn, Award, Crown, Store, Building, Menu, X, Compass, Users,
+  LifeBuoy, ShieldAlert
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import B2BLanding from '@/components/partners/B2BLanding'
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/ranking',     icon: Crown,   label: 'Ranking',        id: 'nav-ranking' },
   { href: '/events',      icon: Trophy,  label: 'Torneios & Eventos', id: 'nav-tournaments' },
   { href: '/logbook',    icon: BookOpen, label: 'Diário de Pesca', id: 'nav-logbook' },
+  { href: '/suporte',    icon: LifeBuoy, label: 'Suporte & Feedback', id: 'nav-support' },
 ]
 
 interface SidebarProps {
@@ -281,6 +283,29 @@ export default function Sidebar({
                     {isResortOwner ? 'Administração' : 'Meu Pesqueiro'}
                   </span>
                   <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Negócios</span>
+                </div>
+              )}
+            </Link>
+          )}
+
+          {profile?.is_admin && (
+            <Link 
+              href="/admin/tickets" 
+              onClick={() => setIsOpenMobile(false)}
+              className={`sidebar-item group ${pathname === '/admin/tickets' ? 'active' : ''}`}
+              style={{ 
+                background: 'rgba(239, 68, 68, 0.03)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                marginBottom: 8
+              }}
+            >
+              <ShieldAlert size={18} className="text-red-500 group-hover:scale-110 transition-transform" />
+              {expanded && (
+                <div className="flex flex-col">
+                  <span className="fade-in text-xs font-black uppercase text-red-500 tracking-tighter">
+                    Gestão Tickets
+                  </span>
+                  <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Administração</span>
                 </div>
               )}
             </Link>

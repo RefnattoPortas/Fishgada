@@ -15,6 +15,7 @@ import WelcomeOverlay from '@/components/common/WelcomeOverlay'
 import PwaInstallOverlay from '@/components/common/PwaInstallOverlay'
 import DownloadMapModal from '@/components/common/DownloadMapModal'
 import LandingPage from '@/components/landing/LandingPage'
+import Onboarding from '@/components/common/Onboarding'
 
 // Importação dinâmica do mapa (evita erro de SSR com Leaflet)
 const FishingMap = dynamic(
@@ -121,7 +122,7 @@ function HomeContent() {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
         const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
         
-        if ((profile as any)?.is_first_login) {
+        if (!(profile as any)?.has_seen_onboarding) {
           setShowWelcome(true)
         } else if (!isStandalone && !hasBeenPrompted) {
           setShowPwaPrompt(true)
@@ -143,7 +144,7 @@ function HomeContent() {
           const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
           const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
           
-          if ((profile as any)?.is_first_login) {
+          if (!(profile as any)?.has_seen_onboarding) {
             setShowWelcome(true)
           } else if (!isStandalone && !hasBeenPrompted) {
             setShowPwaPrompt(true)
@@ -618,13 +619,14 @@ function HomeContent() {
       )}
 
       {showWelcome && (
-        <WelcomeOverlay 
-          onClose={() => {
+        <Onboarding 
+          user_id={user?.id}
+          onComplete={() => {
             setShowWelcome(false)
             // Atualizar o state do usuário localmente também
-            setUser((prev: any) => prev ? { ...prev, profile: { ...prev.profile, is_first_login: false } } : null)
+            setUser((prev: any) => prev ? { ...prev, profile: { ...prev.profile, has_seen_onboarding: true } } : null)
             
-            // Depois do Welcome, se não for standalone, mostra o prompt do PWA
+            // Depois do Onboarding, se não for standalone, mostra o prompt do PWA
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
             const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
             if (!isStandalone && !hasBeenPrompted) {
