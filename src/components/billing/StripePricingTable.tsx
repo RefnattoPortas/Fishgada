@@ -4,19 +4,6 @@ import React, { useEffect, useState } from 'react';
 import Script from 'next/script';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'stripe-pricing-table': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        'pricing-table-id': string;
-        'publishable-key': string;
-        'client-reference-id'?: string;
-        'customer-email'?: string;
-      };
-    }
-  }
-}
-
 export default function StripePricingTable() {
   const [user, setUser] = useState<any>(null);
 
