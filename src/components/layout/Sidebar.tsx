@@ -208,7 +208,7 @@ export default function Sidebar({
                     <p className="font-black text-white text-[13px] truncate leading-none uppercase tracking-tight">
                       {user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}
                     </p>
-                    {(profile?.plan_type === 'pro' || (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())) && (
+                    {(profile?.plan_type === 'pro' || profile?.plan_type === 'partner' || (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())) && (
                       <Crown size={12} className="text-blue-400 fill-blue-400/20" />
                     )}
                   </div>
@@ -238,6 +238,7 @@ export default function Sidebar({
             
             // Ocultar "Assinar PRO" se já for PRO
             const isUserPro = profile?.plan_type === 'pro' || 
+                             profile?.plan_type === 'partner' ||
                              (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())
             
             if (href === '/upgrade' && isUserPro) return null
