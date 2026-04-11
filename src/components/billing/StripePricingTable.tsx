@@ -27,16 +27,12 @@ export default function StripePricingTable() {
         strategy="lazyOnload" 
       />
       
-      {/* 
-        Usamos React.createElement para instanciar o componente customizado do Stripe.
-        O cast 'as any' garante que o TS não valide propriedades do elemento string.
-      */}
-      {React.createElement('stripe-pricing-table' as any, {
-        'pricing-table-id': "prctbl_1TL9g8iUeqXANSvNMFQv9ix",
-        'publishable-key': "pk_test_51TL8jy8iUeqXANSvjIom0nEX50EKm38wuEf6QKQnxvc3B0lqFrRGy8gav0dnfyyu5mJp9axqZry1UC0Fu49KsbSq00qBkEkpqp",
-        'client-reference-id': user.id,
-        'customer-email': user.email
-      })}
+      <stripe-pricing-table 
+        pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || "prctbl_1TL9g8iUeqXANSvNMFQv9ix"}
+        publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_51TL8jy8iUeqXANSvjIom0nEX50EKm38wuEf6QKQnxvc3B0lqFrRGy8gav0dnfyyu5mJp9axqZry1UC0Fu49KsbSq00qBkEkpqp"}
+        client-reference-id={user.id}
+        customer-email={user.email}
+      />
     </div>
   );
 }
