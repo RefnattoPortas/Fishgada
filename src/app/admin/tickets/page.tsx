@@ -3,13 +3,15 @@
 import React, { useEffect, useState } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import AdminDashboard from '@/components/support/AdminDashboard'
+import UsersDashboard from '@/components/support/UsersDashboard'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ShieldAlert, Terminal, MessageSquare, AlertTriangle, Users } from 'lucide-react'
+import { ShieldAlert, Terminal, MessageSquare, AlertTriangle, Users, Ticket as TicketIcon, BarChart3 } from 'lucide-react'
 
 export default function AdminTicketsPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'tickets' | 'users'>('tickets')
   const supabase = getSupabaseClient()
   const router = useRouter()
 
@@ -61,7 +63,7 @@ export default function AdminTicketsPage() {
       <main className="flex-1 overflow-y-auto relative scrollbar-none pb-20">
         <div className="max-w-6xl mx-auto px-6 py-12">
           
-          <header className="mb-12 space-y-4">
+          <header className="mb-8 space-y-4">
             <div className="flex items-center gap-3 text-red-500 font-bold text-xs uppercase tracking-[0.2em]">
               <div className="p-1 px-2 border border-red-500/20 bg-red-500/10 rounded flex items-center gap-1.5">
                 <ShieldAlert size={14} />
@@ -72,10 +74,10 @@ export default function AdminTicketsPage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
                     <h1 className="text-5xl font-black text-white tracking-tighter leading-none mb-1">
-                        Gestão de <span className="text-gradient">Tickets</span>
+                        Gestão <span className="text-gradient">Fishgada</span>
                     </h1>
                     <p className="text-slate-400 max-w-lg text-sm">
-                        Painel centralizado de suporte, feedbacks e resolução de bugs reportados pela comunidade.
+                        Painel centralizado de suporte, relatórios e métricas de todos os usuários da plataforma.
                     </p>
                 </div>
                 
@@ -89,7 +91,29 @@ export default function AdminTicketsPage() {
             </div>
           </header>
 
-          <AdminDashboard />
+          {/* TAB NAVIGATION */}
+          <div className="flex gap-2 mb-8 bg-black/20 p-2 rounded-2xl w-max">
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                activeTab === 'tickets' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <MessageSquare size={16} />
+              TICKETS & FEEDBACK
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                activeTab === 'users' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <BarChart3 size={16} />
+              DASHBOARD DE USUÁRIOS
+            </button>
+          </div>
+
+          {activeTab === 'tickets' ? <AdminDashboard /> : <UsersDashboard />}
 
           <footer className="mt-20 flex items-center justify-between p-6 glass rounded-3xl border-white/5">
                 <div className="flex items-center gap-3">
