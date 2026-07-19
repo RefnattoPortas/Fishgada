@@ -464,6 +464,7 @@ function HomeContent() {
           partnerCount={partnerCount}
           activeCount={activeCount}
           speciesCount={speciesCount}
+          isLoading={isLoadingSpots}
         />
 
         <FishingMap

@@ -140,15 +140,15 @@ export default function RankingPage() {
           {/* Filtros */}
           <div className="glass p-4 rounded-3xl border border-white/5 flex flex-wrap items-end gap-4 shadow-2xl flex-shrink-0">
             <div className="flex-1 min-w-[120px]">
-              <label className="text-[10px] font-black uppercase text-gray-600 ml-1 mb-1 block">Estado</label>
-              <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm font-bold text-white">
+              <label htmlFor="ranking-state" className="text-[10px] font-black uppercase text-gray-600 ml-1 mb-1 block">Estado</label>
+              <select id="ranking-state" value={state} onChange={e => setState(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm font-bold text-white">
                 <option value="" className="text-black">Brasil (Todos)</option>
                 {BRAZILIAN_STATES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
               </select>
             </div>
             <div className="flex-1 min-w-[120px]">
-              <label className="text-[10px] font-black uppercase text-gray-600 ml-1 mb-1 block">Cidade</label>
-              <select value={city} onChange={e => setCity(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm font-bold text-white">
+              <label htmlFor="ranking-city" className="text-[10px] font-black uppercase text-gray-600 ml-1 mb-1 block">Cidade</label>
+              <select id="ranking-city" value={city} onChange={e => setCity(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm font-bold text-white">
                 <option value="" className="text-black">Todas</option>
                 {cities.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
               </select>

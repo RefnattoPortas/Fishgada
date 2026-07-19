@@ -11,6 +11,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
+import { formatPlural } from '@/lib/utils/i18n'
 
 const PRIVACY_CONFIG = {
   public: { label: 'Público', color: '#00d4aa' },
@@ -223,7 +224,7 @@ export default function SpotBottomSheet({
                 </span>
               )}
               <span className="text-[10px] font-bold text-gray-400">
-                {spot.total_captures || 0} captura(s)
+                {formatPlural(spot.total_captures || 0, 'captura', 'capturas')}
               </span>
               {spot.water_type && (
                 <span className="text-[10px] font-bold text-gray-400">
@@ -294,7 +295,7 @@ export default function SpotBottomSheet({
               >
                 <Clock size={14} className="text-cyan-400" />
                 <span className="text-[11px] font-bold text-cyan-400">
-                  {spot.total_captures} captura(s) registrada(s){spot.total_captures >= 3 ? ' — atividade recente' : ''}
+                  {formatPlural(spot.total_captures, 'captura registrada', 'capturas registradas')}{spot.total_captures >= 3 ? ' — atividade recente' : ''}
                 </span>
               </div>
             )}

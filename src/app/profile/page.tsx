@@ -401,12 +401,12 @@ export default function ProfilePage() {
           
           {/* Tab Navigation */}
           <div className="flex items-center gap-6 border-b border-white/5 pb-1">
-             <button onClick={() => setActiveTab('general')} className={`pb-4 px-2 text-sm font-black uppercase tracking-widest transition-all relative ${activeTab === 'general' ? 'text-accent' : 'text-gray-500 hover:text-white'}`}>
-                Pescador {activeTab === 'general' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent shadow-[0_0_10px_rgba(0,212,170,0.8)]" />}
-             </button>
-             <button onClick={() => setActiveTab('business')} className={`pb-4 px-2 text-sm font-black uppercase tracking-widest transition-all relative ${activeTab === 'business' ? 'text-accent' : 'text-gray-500 hover:text-white'}`}>
-                Meu Pesqueiro {activeTab === 'business' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent shadow-[0_0_10px_rgba(0,212,170,0.8)]" />}
-             </button>
+              <button onClick={() => setActiveTab('general')} className={`pb-4 pt-2 px-2 text-sm font-black uppercase tracking-widest transition-all relative min-h-[44px] ${activeTab === 'general' ? 'text-accent' : 'text-gray-500 hover:text-white'}`}>
+                 Pescador {activeTab === 'general' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent shadow-[0_0_10px_rgba(0,212,170,0.8)]" />}
+              </button>
+              <button onClick={() => setActiveTab('business')} className={`pb-4 pt-2 px-2 text-sm font-black uppercase tracking-widest transition-all relative min-h-[44px] ${activeTab === 'business' ? 'text-accent' : 'text-gray-500 hover:text-white'}`}>
+                 Meu Pesqueiro {activeTab === 'business' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent shadow-[0_0_10px_rgba(0,212,170,0.8)]" />}
+              </button>
           </div>
 
           {loading ? (
@@ -469,20 +469,20 @@ export default function ProfilePage() {
                       <>
                         <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">{profile?.display_name || 'Pescador'}</h1>
                         <p className="text-accent font-bold text-xs flex items-center justify-center md:justify-start gap-1 uppercase tracking-widest">
-                          <MapPin size={12} /> {profile?.city || '---'}, {profile?.state || '---'}
+                          <MapPin size={12} /> {(profile?.city || '---').trim()}, {profile?.state || '---'}
                         </p>
                         <p className="text-gray-400 font-medium max-w-xl">{profile?.bio || 'Sem bio disponível.'}</p>
                       </>
                     ) : (
                       <div className="space-y-4 max-w-xl">
-                        <input value={editForm.display_name} onChange={e => setEditForm({...editForm, display_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white" placeholder="Nome" />
+                        <input value={editForm.display_name} onChange={e => setEditForm({...editForm, display_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 min-h-[44px] text-white" placeholder="Nome" />
                         <div className="grid grid-cols-2 gap-2">
-                           <input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white" placeholder="Cidade" />
-                           <select value={editForm.state} onChange={e => setEditForm({...editForm, state: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white">
+                           <input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 min-h-[44px] text-white" placeholder="Cidade" />
+                           <select value={editForm.state} onChange={e => setEditForm({...editForm, state: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 min-h-[44px] text-white">
                              {BRAZILIAN_STATES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
                            </select>
                         </div>
-                        <textarea value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white resize-none" placeholder="Bio" />
+                        <textarea value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 min-h-[44px] text-white resize-none" placeholder="Bio" />
                       </div>
                     )}
                     <div className="pt-2 flex items-center justify-center md:justify-start gap-3">
@@ -532,7 +532,7 @@ export default function ProfilePage() {
                   { id: 'inscriptions', label: 'Torneios', icon: Trophy },
                   { id: 'achievements', label: 'Medalhas', icon: Award },
                 ].map((tab) => (
-                  <button key={tab.id} onClick={() => setProfileSubTab(tab.id as any)} className={`py-3 px-6 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${profileSubTab === tab.id ? 'bg-accent text-dark shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
+                  <button key={tab.id} onClick={() => setProfileSubTab(tab.id as any)} className={`py-3.5 px-6 min-h-[44px] text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 ${profileSubTab === tab.id ? 'bg-accent text-dark shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
                     <tab.icon size={14} /> {tab.label}
                   </button>
                 ))}

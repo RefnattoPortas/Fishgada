@@ -102,21 +102,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── 5. Security Headers ──
-  // Content-Security-Policy (Report-Only — monitorar violações antes de ativar bloqueio)
-  const cspDirectives = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.googleusercontent.com https://*.cartocdn.com https://*.supabase.co https://*.gravatar.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.cartocdn.com https://accounts.google.com https://*.googleapis.com",
-    "frame-src 'self' https://*.stripe.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-  ]
-
-  response.headers.set('Content-Security-Policy-Report-Only', cspDirectives.join('; '))
+  // CSP ativa configurada via next.config.ts (política consolidada).
+  // Este middleware mantém apenas headers que next.config.ts não cobre dinamicamente.
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')

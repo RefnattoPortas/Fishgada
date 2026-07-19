@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import { 
   Settings, User, Bell, Shield, LogOut, Save, Camera, CheckCircle2, 
@@ -24,8 +24,8 @@ function SettingsContent() {
     avatar_url: ''
   })
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   // Detect tab from URL
   const tabParam = searchParams.get('tab')
@@ -114,10 +114,17 @@ function SettingsContent() {
     setLoading(false)
   }
 
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+    }
+  }, [])
+
   const handleSave = async () => {
-    if (!user) return
-    setSaving(true)
-    const supabase = getSupabaseClient()
+    if (!user || status === 'saving') return
+    setStatus('saving')
+
+    if (successTimerRef.current) clearTimeout(successTimerRef.current)
     
     try {
       const updatePayload: Record<string, any> = {
@@ -126,6 +133,7 @@ function SettingsContent() {
         bio: profile.bio,
         updated_at: new Date().toISOString()
       }
+      const supabase = getSupabaseClient()
       const { error } = await (supabase as any)
         .from('profiles')
         .update(updatePayload)
@@ -133,13 +141,12 @@ function SettingsContent() {
 
       if (error) throw error
       
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+      setStatus('success')
+      successTimerRef.current = setTimeout(() => setStatus('idle'), 3000)
     } catch (err) {
       console.error('Erro ao salvar perfil:', err)
-      alert('Erro ao salvar as alterações.')
-    } finally {
-      setSaving(false)
+      setStatus('error')
+      successTimerRef.current = setTimeout(() => setStatus('idle'), 4000)
     }
   }
 
@@ -266,16 +273,25 @@ function SettingsContent() {
 
                   {/* Action Button */}
                   <div className="pt-4 flex items-center justify-between">
-                    <div className={`flex items-center gap-2 text-green-500 font-bold text-sm transition-all ${showSuccess ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
-                      <CheckCircle2 size={18} /> Alterações salvas!
+                    <div>
+                      {status === 'success' && (
+                        <div role="status" aria-live="polite" className="flex items-center gap-2 text-green-500 font-bold text-sm">
+                          <CheckCircle2 size={18} /> Alterações salvas!
+                        </div>
+                      )}
+                      {status === 'error' && (
+                        <div role="alert" className="flex items-center gap-2 text-red-500 font-bold text-sm">
+                          <AlertCircle size={18} /> Erro ao salvar as alterações.
+                        </div>
+                      )}
                     </div>
                     <button 
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={status === 'saving'}
                       className="btn-primary px-8 py-3 rounded-2xl flex items-center gap-3 font-black text-sm relative overflow-hidden active:scale-95 transition-transform"
                     >
-                      {saving ? (
-                        <div className="w-5 h-5 border-2 border-dark/30 border-t-dark rounded-full animate-spin" />
+                      {status === 'saving' ? (
+                        <><div className="w-5 h-5 border-2 border-dark/30 border-t-dark rounded-full animate-spin" /> Salvando...</>
                       ) : (
                         <><Save size={18} /> Salvar Alterações</>
                       )}

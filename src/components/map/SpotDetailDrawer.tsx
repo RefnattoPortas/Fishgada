@@ -5,6 +5,7 @@ import { X, MapPin, Fish, Award, Lock, Users, Eye, EyeOff, Star, Share2, Check }
 import type { SpotMapView } from '@/types/database'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatPlural } from '@/lib/utils/i18n'
 
 const LURE_LABELS: Record<string, { label: string; emoji: string }> = {
   topwater:     { label: 'Superfície',    emoji: '🦟' },
@@ -183,7 +184,7 @@ export default function SpotDetailDrawer({
             {[
               { key: 'info',     label: 'Informações' },
               { key: 'setup',    label: '🏆 Setup da Vitória' },
-              { key: 'captures', label: `🎣 ${spot.total_captures} capturas` },
+              { key: 'captures', label: `🎣 ${formatPlural(spot.total_captures, 'captura', 'capturas')}` },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -225,7 +226,7 @@ export default function SpotDetailDrawer({
                   <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent-primary)' }}>
                     {spot.total_captures || 0}
                   </p>
-                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>captura(s)</p>
+                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{spot.total_captures === 1 ? 'captura' : 'capturas'}</p>
                 </div>
                 <div className="card" style={{ padding: '12px 14px', textAlign: 'center' }}>
                   <p style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b' }}>
@@ -347,7 +348,7 @@ export default function SpotDetailDrawer({
                 <div style={{ fontSize: 13, color: 'var(--color-text-secondary)', textAlign: 'center', padding: 16 }}>
                   <p>Veja as capturas detalhadas na seção de capturas</p>
                   <p style={{ marginTop: 8, color: 'var(--color-accent-primary)', fontWeight: 600 }}>
-                    {spot.total_captures} captura(s) registrada(s)
+                    {formatPlural(spot.total_captures, 'captura registrada', 'capturas registradas')}
                   </p>
                 </div>
               )}

@@ -560,7 +560,7 @@ export default function FishingMap({
         marker.bindTooltip(
           `<div style="font-family:Inter,sans-serif;font-size:13px;">
             <strong>${spot.title}</strong>
-            ${spot.total_captures ? `<br/><span style="color:#00d4aa">🎣 ${spot.total_captures} capturas</span>` : ''}
+            ${spot.total_captures ? `<br/><span style="color:#00d4aa">🎣 ${spot.total_captures} ${spot.total_captures === 1 ? 'captura' : 'capturas'}</span>` : ''}
             ${spot.latest_lure_type ? `<br/>${LURE_LABELS[spot.latest_lure_type] || spot.latest_lure_type}` : ''}
           </div>`,
           { className: 'custom-tooltip', direction: 'top' }
@@ -768,30 +768,30 @@ export default function FishingMap({
 
           {/* Zoom Controls (à direita da legenda) */}
            <div className="flex flex-col gap-2" role="group" aria-label="Controles do mapa">
-              <button
-               onClick={handleFindMe}
-               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-accent hover:bg-white/10 transition-all border border-accent/30 shadow-[0_0_15px_rgba(0,183,168,0.2)]"
-               title="Encontrar minha localização"
-               aria-label="Minha localização — centralizar mapa na sua posição atual"
-              >
-                 <Navigation size={18} fill="currentColor" />
-              </button>
-              <button
-               onClick={() => leafletMapRef.current?.zoomIn()}
-               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
-               title="Aumentar zoom"
-               aria-label="Aumentar zoom do mapa"
-              >
-                 +
-              </button>
-              <button
-               onClick={() => leafletMapRef.current?.zoomOut()}
-               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
-               title="Diminuir zoom"
-               aria-label="Diminuir zoom do mapa"
-              >
-                 −
-              </button>
+               <button
+                onClick={handleFindMe}
+                className="w-11 h-11 glass rounded-xl flex items-center justify-center text-accent hover:bg-white/10 transition-all border border-accent/30 shadow-[0_0_15px_rgba(0,183,168,0.2)]"
+                title="Encontrar minha localização"
+                aria-label="Minha localização — centralizar mapa na sua posição atual"
+               >
+                  <Navigation size={18} fill="currentColor" />
+               </button>
+               <button
+                onClick={() => leafletMapRef.current?.zoomIn()}
+                className="w-11 h-11 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
+                title="Aumentar zoom"
+                aria-label="Aumentar zoom do mapa"
+               >
+                  +
+               </button>
+               <button
+                onClick={() => leafletMapRef.current?.zoomOut()}
+                className="w-11 h-11 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
+                title="Diminuir zoom"
+                aria-label="Diminuir zoom do mapa"
+               >
+                  −
+               </button>
            </div>
         </div>
       )}

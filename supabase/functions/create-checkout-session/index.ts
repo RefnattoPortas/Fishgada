@@ -11,13 +11,33 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "https://fishgada.vercel.app",
+  Deno.env.get("APP_URL") || "",
+].filter(Boolean) as string[];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Headers":
+        "authorization, x-client-info, apikey, content-type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Vary": "Origin",
+    };
+  }
+  return {
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -78,7 +98,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5. Criar sessão de checkout
-    const origin = req.headers.get("origin") || "https://fish-map-ten.vercel.app";
+    const origin = ALLOWED_ORIGINS.includes(req.headers.get("origin") || "")
+      ? req.headers.get("origin")!
+      : "https://fishgada.vercel.app";
     const interval = priceId.includes('ANNUAL') ? 'year' : 'month';
 
     const session = await stripe.checkout.sessions.create({

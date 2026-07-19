@@ -15,6 +15,13 @@ import { getRankByLevel } from '@/lib/utils/ranks'
 
 const STORAGE_KEY = 'fishgada_sidebar_expanded'
 
+const matchRoute = (href: string, pathname: string, allowSubroutes = false): boolean => {
+  if (allowSubroutes) {
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+  return pathname === href
+}
+
 const navItems = [
   { href: '/radar',    icon: Map,      label: 'Radar',           desc: 'Mapa com pontos de pesca' },
   { href: '/explore',  icon: Compass,  label: 'Explorar',        desc: 'Descobrir novos locais' },
@@ -316,7 +323,7 @@ export default function Sidebar({
           {/* Navigation */}
           <nav className="flex-1 flex flex-col gap-1 px-2" aria-label="Seções do aplicativo">
             {navItems.map(({ href, icon: Icon, label, desc }) => {
-              const isActive = pathname === href
+              const isActive = matchRoute(href, pathname)
 
               const isUserPro = profile?.plan_type === 'pro' ||
                                profile?.plan_type === 'partner' ||
@@ -371,13 +378,14 @@ export default function Sidebar({
               <Link
                 href={isResortOwner ? '/resort-admin' : '/profile?tab=business'}
                 onClick={closeMobile}
-                className={`sidebar-item group ${pathname === '/resort-admin' ? 'active' : ''}`}
+                className={`sidebar-item group ${matchRoute('/resort-admin', pathname, true) ? 'active' : ''}`}
                 style={{
                   background: 'rgba(0, 212, 170, 0.03)',
                   border: '1px solid rgba(0, 212, 170, 0.2)',
                   marginBottom: 8
                 }}
                 aria-label={isResortOwner ? 'Administração do pesqueiro' : 'Área do parceiro'}
+                aria-current={matchRoute('/resort-admin', pathname, true) ? 'page' : undefined}
                 title={!showExpanded ? (isResortOwner ? 'Negócio' : 'Meu Pesqueiro') : undefined}
               >
                 <Store size={18} className="text-accent group-hover:scale-110 transition-transform" aria-hidden="true" />
@@ -396,13 +404,14 @@ export default function Sidebar({
               <Link
                 href="/admin/tickets"
                 onClick={closeMobile}
-                className={`sidebar-item group ${pathname === '/admin/tickets' ? 'active' : ''}`}
+                className={`sidebar-item group ${matchRoute('/admin/tickets', pathname, true) ? 'active' : ''}`}
                 style={{
                   background: 'rgba(239, 68, 68, 0.03)',
                   border: '1px solid rgba(239, 68, 68, 0.2)',
                   marginBottom: 8
                 }}
                 aria-label="Administração — Gestão de Tickets"
+                aria-current={matchRoute('/admin/tickets', pathname, true) ? 'page' : undefined}
                 title={!showExpanded ? 'Administração' : undefined}
               >
                 <ShieldAlert size={18} className="text-red-500 group-hover:scale-110 transition-transform" aria-hidden="true" />
@@ -419,8 +428,9 @@ export default function Sidebar({
 
             <Link
               href="/settings"
-              className="sidebar-item"
+              className={`sidebar-item ${matchRoute('/settings', pathname) ? 'active' : ''}`}
               onClick={closeMobile}
+              aria-current={matchRoute('/settings', pathname) ? 'page' : undefined}
               aria-label="Configurações do aplicativo"
               title={!showExpanded ? 'Configurações' : undefined}
             >

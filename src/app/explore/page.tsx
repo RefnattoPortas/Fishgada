@@ -6,6 +6,7 @@ import { SpotMapView } from '@/types/database'
 import { MapPin, Search, Navigation, Compass, Fish, Droplet, Users, Lock, Star, ExternalLink, ChevronLeft, Utensils, Baby, Trophy, Warehouse } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/layout/Sidebar'
+import { formatPlural } from '@/lib/utils/i18n'
 
 // Constants
 const PRIVACY_COLORS: Record<string, string> = {
@@ -255,7 +256,7 @@ export default function ExplorePage() {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-200 border whitespace-nowrap"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-3 min-h-[44px] rounded-full text-[11px] font-black uppercase tracking-wider transition-all duration-200 border whitespace-nowrap"
                   style={isActive ? {
                     backgroundColor: `${cat.color}20`,
                     borderColor: `${cat.color}60`,
@@ -279,7 +280,9 @@ export default function ExplorePage() {
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Distance */}
             <div className="flex-1 relative">
+              <label htmlFor="explore-distance" className="sr-only">Distância máxima</label>
               <select
+                id="explore-distance"
                 value={maxDistance}
                 onChange={(e) => setMaxDistance(Number(e.target.value))}
                 className="w-full bg-[#0a0f1a] border border-white/10 text-white rounded-xl py-2.5 pl-4 pr-10 focus:outline-none focus:border-cyan-500/50 transition-all font-bold text-sm appearance-none cursor-pointer hover:border-white/20"
@@ -500,7 +503,7 @@ export default function ExplorePage() {
                           )}
                           <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-gray-500">
                             <Fish size={12} className="text-accent" />
-                            <span>{spot.total_captures || 0} Capturas</span>
+                            <span>{formatPlural(spot.total_captures || 0, 'captura', 'capturas')}</span>
                           </div>
                           {spot.is_verified && (
                             <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-amber-500">

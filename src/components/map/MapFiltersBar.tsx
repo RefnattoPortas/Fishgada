@@ -63,12 +63,14 @@ interface MapFiltersBarProps {
   partnerCount?: number
   activeCount?: number
   speciesCount?: number
+  isLoading?: boolean
 }
 
 export default function MapFiltersBar({
   filters, onChange, spotCount, user, theme = 'light',
   highlights = [], onHighlightClick,
   partnerCount, activeCount, speciesCount,
+  isLoading = false,
 }: MapFiltersBarProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [speciesSearch, setSpeciesSearch] = useState(filters.species)
@@ -150,13 +152,15 @@ export default function MapFiltersBar({
   }
 
   const contextualCount = useMemo(() => {
+    if (isLoading) return 'Carregando locais...'
+    if (spotCount === 0) return 'Nenhum local encontrado'
     const parts: string[] = []
-    parts.push(`${spotCount} local(is) encontrado(s)`)
+    parts.push(`${spotCount} ${spotCount === 1 ? 'local encontrado' : 'locais encontrados'}`)
     if (speciesCount && speciesCount > 0 && !filters.species) parts.push(`${speciesCount} com a espécie`)
-    if (activeCount && activeCount > 0) parts.push(`${activeCount} ativo(s)`)
-    if (partnerCount && partnerCount > 0) parts.push(`${partnerCount} parceiro(s)`)
+    if (activeCount && activeCount > 0) parts.push(`${activeCount} ativo${activeCount === 1 ? '' : 's'}`)
+    if (partnerCount && partnerCount > 0) parts.push(`${partnerCount} parceiro${partnerCount === 1 ? '' : 's'}`)
     return parts.join(' · ')
-  }, [spotCount, speciesCount, activeCount, partnerCount, filters.species])
+  }, [isLoading, spotCount, speciesCount, activeCount, partnerCount, filters.species])
 
   const isProUser = user?.profile?.subscription_tier === 'pro' || user?.profile?.subscription_tier === 'partner'
 
@@ -179,7 +183,7 @@ export default function MapFiltersBar({
         <button
           type="button"
           className="md:hidden flex items-center justify-center rounded-[10px] bg-[#0a0f1a] text-white border border-[var(--color-border-strong)] hover:bg-[#121e30] transition-colors"
-          style={{ minWidth: 42, width: 42, height: 42 }}
+          style={{ minWidth: 44, width: 44, height: 44 }}
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -206,7 +210,7 @@ export default function MapFiltersBar({
               if (e.target.value) trackEvent('species_searched', { species: e.target.value })
             }}
             style={{
-              paddingLeft: 32, minHeight: 38, fontSize: 13,
+              paddingLeft: 32, minHeight: 44, fontSize: 13,
               background: theme === 'light' ? 'rgba(0,0,0,0.04)' : undefined,
               borderColor: theme === 'light' ? 'rgba(0,0,0,0.06)' : undefined,
               color: theme === 'light' ? '#111827' : undefined,
@@ -228,7 +232,7 @@ export default function MapFiltersBar({
           onClick={() => setIsExpanded(!isExpanded)}
           className="btn-secondary"
           style={{
-            minHeight: 38, padding: '0 12px', fontSize: 13, position: 'relative',
+            minHeight: 44, padding: '0 14px', fontSize: 13, position: 'relative',
             background: theme === 'light' ? (hasActiveFilters ? '#00d4aa15' : 'rgba(0,0,0,0.04)') : undefined,
             color: hasActiveFilters ? '#00b38f' : (theme === 'light' ? '#374151' : 'var(--color-text-secondary)'),
             borderColor: hasActiveFilters ? (theme === 'light' ? '#00d4aa88' : 'var(--color-accent-primary)') : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
@@ -254,7 +258,7 @@ export default function MapFiltersBar({
           <button
             onClick={resetAll}
             style={{
-              width: 32, height: 38, background: 'transparent',
+              width: 44, height: 44, background: 'transparent',
               border: 'none', cursor: 'pointer', padding: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -303,7 +307,7 @@ export default function MapFiltersBar({
               key={sp}
               onClick={() => { setSpeciesSearch(label); onChange({ ...filters, species: label }) }}
               style={{
-                padding: '4px 10px', borderRadius: 20, border: '1px solid',
+                padding: '10px 12px', minHeight: 44, borderRadius: 20, border: '1px solid',
                 borderColor: filters.species === label ? '#00d4aa88' : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
                 background: filters.species === label
                   ? (theme === 'light' ? '#00d4aa22' : 'var(--color-accent-glow)')
@@ -332,7 +336,7 @@ export default function MapFiltersBar({
                 className="select"
                 value={filters.lureType}
                 onChange={e => set('lureType', e.target.value)}
-                style={{ minHeight: 40 }}
+                style={{ minHeight: 44 }}
                 aria-label="Filtrar por tipo de isca"
               >
                 {LURE_TYPES.map(l => (
@@ -349,7 +353,7 @@ export default function MapFiltersBar({
                 className="select"
                 value={filters.waterType}
                 onChange={e => set('waterType', e.target.value)}
-                style={{ minHeight: 40 }}
+                style={{ minHeight: 44 }}
                 aria-label="Filtrar por tipo de água"
               >
                 {WATER_TYPES.map(w => (
@@ -366,8 +370,8 @@ export default function MapFiltersBar({
               id="filter-privacy-type"
               value={filters.privacyType}
               onChange={e => set('privacyType', e.target.value)}
-              style={{ minHeight: 40 }}
-              aria-label="Filtrar por tipo de local"
+               style={{ minHeight: 44 }}
+               aria-label="Filtrar por tipo de local"
             >
               {PRIVACY_TYPES.map(p => (
                 <option key={p.value} value={p.value}>{p.label}</option>
@@ -393,7 +397,7 @@ export default function MapFiltersBar({
                   onClick={() => set(opt.key as keyof MapFilters, !isActive)}
                   className="transition-all"
                   style={{
-                    padding: '6px 12px', borderRadius: 8, border: '1px solid',
+                    padding: '10px 14px', minHeight: 44, borderRadius: 8, border: '1px solid',
                     borderColor: isActive ? color : (theme === 'light' ? 'rgba(0,0,0,0.06)' : 'var(--color-border)'),
                     background: isActive ? (theme === 'light' ? `${color}15` : 'var(--color-accent-glow)') : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'transparent'),
                     color: isActive ? color : (theme === 'light' ? '#6b7280' : 'var(--color-text-secondary)'),
@@ -417,7 +421,11 @@ export default function MapFiltersBar({
       {/* Context Count + Highlights */}
       <div style={{ padding: '6px 14px 10px', borderTop: isExpanded ? `1px solid ${theme === 'light' ? '#e5e7eb' : 'var(--color-border)'}` : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 11, color: theme === 'light' ? '#6b7280' : 'var(--color-text-muted)' }}>
+          <span
+            aria-busy={isLoading}
+            aria-live="polite"
+            style={{ fontSize: 11, color: theme === 'light' ? '#6b7280' : 'var(--color-text-muted)' }}
+          >
             {contextualCount}
           </span>
           {highlights.length > 0 && (
@@ -449,7 +457,7 @@ export default function MapFiltersBar({
               onClick={() => onHighlightClick?.(h.id)}
               style={{
                 marginTop: 8, width: '100%', display: 'flex', alignItems: 'center',
-                gap: 10, padding: '8px 12px', borderRadius: 12, border: '1px solid',
+                  gap: 10, padding: '12px 14px', minHeight: 44, borderRadius: 12, border: '1px solid',
                 borderColor: theme === 'light' ? '#a855f733' : '#a855f744',
                 background: theme === 'light' ? '#a855f70a' : 'rgba(168, 85, 247, 0.08)',
                 cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s ease',
