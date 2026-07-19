@@ -1,0 +1,253 @@
+Você é o agente responsável por evoluir o Fishgada. Trabalhe diretamente no projeto existente, preserve o design e a arquitetura já adotados, e implemente as melhorias abaixo com foco em experiência mobile-first, clareza de uso, conversão e acessibilidade.
+
+## Objetivo
+
+Transformar a tela de mapa em uma jornada mais clara:
+
+1. O pescador entende imediatamente o que pode fazer.
+2. Encontra locais relevantes com poucos toques.
+3. Consegue avaliar um ponto antes de abrir rotas ou interagir.
+4. É incentivado a registrar capturas e contribuir com a comunidade.
+5. Parceiros aparecem de forma útil, sem poluir o mapa.
+
+Não remova recursos existentes. Antes de alterar, inspecione os componentes, rotas, modelos de dados, sistema de design, autenticação e integrações atuais. Reutilize componentes e padrões existentes sempre que possível.
+
+## Escopo principal: mapa/radar
+
+A tela atual contém busca por espécie, chips de espécies, filtros, marcadores de pontos de pesca, legenda, localização, zoom, captura, mapa offline e adição de ponto.
+
+### 1. Painel de detalhes do ponto de pesca
+
+Ao tocar em um marcador, abrir um painel inferior mobile (bottom sheet) ou cartão lateral no desktop, sem tirar o usuário do mapa.
+
+O painel deve mostrar, conforme houver dados:
+
+- Nome do local/pesqueiro.
+- Foto de capa ou placeholder consistente.
+- Tipo: público, comunitário, privado ou parceiro.
+- Distância em relação ao usuário, quando a localização estiver disponível.
+- Espécies mais frequentes.
+- Nota média e quantidade de avaliações, se o sistema já suportar isso.
+- Indicador de atividade recente, por exemplo: “3 capturas nos últimos 7 dias”.
+- Estrutura disponível: estacionamento, restaurante, banheiro, aluguel, guia, hospedagem etc., apenas quando houver dados.
+- Forma de acesso/regras relevantes.
+- Selo de parceiro, quando aplicável.
+- Ações claras:
+  - Ver detalhes
+  - Traçar rota
+  - Salvar local
+  - Compartilhar
+  - Registrar captura neste local
+
+Se alguma informação não existir, não exibir linha vazia. Use fallback visual elegante.
+
+Critérios de aceitação:
+
+- Tocar em qualquer marcador abre um painel identificando inequivocamente o ponto selecionado.
+- Fechar o painel retorna ao mapa sem perder filtros ou posição.
+- O painel funciona em tela pequena e grande.
+- Marcadores não devem depender apenas de cor para comunicar o tipo de local.
+
+### 2. Agrupamento de marcadores
+
+Quando o zoom estiver afastado e houver vários pontos próximos, agrupar marcadores em clusters.
+
+Requisitos:
+
+- Exibir a quantidade de pontos no cluster.
+- Ao tocar, aproximar o mapa ou expandir os pontos de maneira compreensível.
+- Atualizar clusters ao mover, ampliar ou reduzir o mapa.
+- Manter a diferenciação visual entre locais comuns e parceiros, sem comprometer a legibilidade.
+- Evitar que marcadores sobrepostos bloqueiem a interação.
+
+Critério de aceitação:
+
+- Em áreas densas, o mapa permanece limpo e é possível chegar a qualquer ponto com no máximo dois toques adicionais.
+
+### 3. Filtros que ajudam a decidir
+
+Manter a busca e os chips de espécies, mas ampliar o painel de filtros com opções compatíveis com os dados atuais.
+
+Priorizar:
+
+- Espécie.
+- Raio/distância.
+- Tipo de local: público, comunitário, privado e parceiro.
+- Faixa de preço/entrada, se houver dados.
+- Estrutura e comodidades.
+- Acessibilidade.
+- Avaliação mínima, se houver avaliações.
+- Atividade recente.
+- Pesca embarcada, de barranco ou outras modalidades, se existir no modelo.
+
+Requisitos de UX:
+
+- Exibir filtros aplicados como chips removíveis.
+- Ter ação “Limpar filtros”.
+- Informar a quantidade de resultados atualizada: por exemplo, “12 locais encontrados”.
+- Persistir os filtros enquanto o usuário navega dentro do mapa, sem persistir incorretamente entre contas.
+- Não exibir filtros sem suporte nos dados; caso seja necessário, criar a base para suportá-los sem dados fictícios.
+
+### 4. Contexto para quem chega pela primeira vez
+
+Criar uma orientação discreta na primeira visita ao mapa, que possa ser fechada e não se torne repetitiva.
+
+Texto sugerido:
+
+“Encontre locais de pesca, filtre por espécie e registre suas capturas.”
+
+A orientação deve apontar, de modo breve, para:
+
+- Busca/filtros.
+- Marcadores no mapa.
+- Ação de registrar captura.
+- Ação de adicionar ponto.
+
+Requisitos:
+
+- Não bloquear o mapa.
+- Ter botão “Entendi”.
+- Ser salva por usuário/dispositivo conforme o padrão existente no projeto.
+- Ser acessível por teclado e leitor de tela.
+
+### 5. Converter a contagem em informação útil
+
+Substituir ou complementar o texto simples “X pontos no mapa” por uma mensagem contextual, sem exagerar no volume de informação.
+
+Exemplos:
+
+- “12 locais encontrados”
+- “4 com tucunaré”
+- “3 tiveram atividade nesta semana”
+- “2 parceiros na sua região”
+
+Regras:
+
+- Só mostrar métricas realmente disponíveis.
+- Atualizar em resposta aos filtros.
+- Em telas pequenas, priorizar a informação mais útil e evitar sobreposição sobre o mapa.
+
+### 6. Locais recomendados
+
+Adicionar uma seção ou painel recolhível de recomendações com base em proximidade, espécies filtradas, atividade recente e parceiros — usando apenas dados reais existentes.
+
+Possíveis seções:
+
+- Perto de você.
+- Mais ativos nesta semana.
+- Melhores para a espécie selecionada.
+- Parceiros em destaque.
+
+Cada cartão deve mostrar informações mínimas úteis: foto, nome, distância, espécies, tipo e ação para focar o ponto no mapa.
+
+Não criar rankings ou recomendações falsas. Se os dados ainda não permitirem uma recomendação confiável, implementar um estado vazio explicativo ou limitar a seção a “Locais próximos”.
+
+### 7. Participação da comunidade
+
+Após o usuário registrar uma captura com sucesso, apresentar uma etapa opcional, simples e não bloqueadora:
+
+“Ajude outros pescadores a conhecer este local.”
+
+Permitir, conforme o que já existir no produto:
+
+- Foto.
+- Espécie.
+- Tamanho/peso.
+- Isca utilizada.
+- Condições da água/clima.
+- Observação livre.
+- Visibilidade da captura ou do ponto: público, comunitário ou privado.
+
+Evitar solicitar tudo de uma vez. O fluxo deve permitir concluir apenas o registro essencial.
+
+Também considerar uma solicitação leve após uma visita ou ação em um local:
+
+“Como estava a pescaria?” com uma resposta rápida e opção de ignorar.
+
+## Navegação, microcopy e acessibilidade
+
+Revisar a tela para eliminar controles sem nome acessível.
+
+Requisitos obrigatórios:
+
+- Todo botão apenas com ícone deve ter `aria-label`, tooltip no desktop e descrição compreensível.
+- Exemplos: abrir menu, minha localização, ampliar, reduzir, nova captura, baixar mapa offline e adicionar ponto.
+- Links e itens de navegação devem ter nomes acessíveis claros.
+- Garantir contraste adequado entre texto, fundos, chips, marcadores e legenda.
+- Não depender somente de cor para os tipos de ponto.
+- Garantir foco visível, navegação por teclado e áreas de toque adequadas no mobile.
+- Verificar estados de carregamento, vazio, erro e permissão de localização negada.
+
+## Parceiros e monetização
+
+Manter o selo de parceiro, mas fazê-lo contribuir para a decisão do pescador.
+
+Regras:
+
+- Mostrar parceiro de maneira clara no painel e nos cartões.
+- Explicar o benefício real quando houver: desconto, estrutura, reserva, contato, guia, restaurante ou outro diferencial.
+- Não usar destaque visual excessivo nem fazer parceiros parecerem resultados orgânicos sem identificação.
+- Se houver promoção/patrocínio, identificá-lo explicitamente.
+
+## Dados, desempenho e segurança
+
+- Não criar dados de demonstração em produção.
+- Tratar campos ausentes com fallbacks visuais.
+- Evitar carregar todos os detalhes de todos os pontos antes de o usuário selecionar um.
+- Garantir que filtros e clusters não degradem a fluidez do mapa.
+- Preservar regras de privacidade para pontos privados e comunitários.
+- Não expor localização precisa, capturas privadas ou informações de usuários sem autorização.
+- Respeitar as permissões existentes para criar, editar e visualizar pontos/capturas.
+
+## Instrumentação
+
+Adicionar ou revisar eventos analíticos, usando a solução já existente no projeto. Registrar, no mínimo:
+
+- `map_viewed`
+- `species_searched`
+- `filter_applied`
+- `marker_opened`
+- `place_details_opened`
+- `route_requested`
+- `place_saved`
+- `capture_started_from_map`
+- `capture_created`
+- `place_added`
+- `onboarding_completed`
+- `onboarding_dismissed`
+
+Incluir propriedades úteis, sem dados pessoais desnecessários: tipo de local, espécie selecionada, quantidade de filtros, origem da ação e se o usuário concedeu localização.
+
+## Métricas de sucesso
+
+Definir e deixar documentadas estas métricas:
+
+- Taxa de usuários que abrem detalhes após visualizar o mapa.
+- Taxa de abertura de detalhes por marcador.
+- Taxa de solicitação de rota.
+- Taxa de início e conclusão de captura.
+- Taxa de adição de ponto.
+- Uso e conversão de filtros.
+- Retenção de usuários que registram uma captura ou salvam um local.
+- Cliques e conversão de parceiros, sempre identificados separadamente.
+
+Métrica norteadora sugerida:
+
+“Percentual de sessões no mapa que resultam em uma ação útil: abrir detalhes, salvar local, solicitar rota, registrar captura ou adicionar ponto.”
+
+## Entrega esperada
+
+1. Implementação completa e integrada ao projeto.
+2. Componentes reutilizáveis e tipados conforme o padrão atual.
+3. Interface responsiva para mobile e desktop.
+4. Estados de carregamento, vazio, erro e ausência de permissão tratados.
+5. Testes adequados aos padrões já existentes, especialmente para filtros, abertura de detalhes, clusters e ações principais.
+6. Breve documento final contendo:
+   - O que foi implementado.
+   - Quais dados existentes foram usados.
+   - Quais recursos dependem de dados ainda não disponíveis.
+   - Eventos analíticos adicionados.
+   - Capturas de tela ou descrição dos fluxos principais.
+   - Pendências técnicas e recomendações de próxima etapa.
+
+Não faça alterações destrutivas, não remova funcionalidades existentes e não modifique regras de acesso sem necessidade explícita.

@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import { 
   Trophy, Calendar, Users, DollarSign, MapPin, 
-  ChevronRight, ArrowLeft, Ticket, CheckCircle2, Clock, Filter, Search
+  ChevronRight, ArrowLeft, Ticket, CheckCircle2, Clock, Filter, Search, AlertCircle
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/layout/Sidebar'
 import TournamentTicket from '@/components/tournaments/TournamentTicket'
 import { useRouter } from 'next/navigation'
+import { formatPlural } from '@/lib/utils/i18n'
 
 interface Tournament {
   id: string
@@ -40,23 +41,54 @@ export default function EventsPage() {
   const [user, setUser] = useState<any>(null)
   const [filter, setFilter] = useState<'all' | 'open' | 'mine'>('all')
   const [search, setSearch] = useState('')
+  const [errorState, setErrorState] = useState<'error' | 'timeout' | null>(null)
   const router = useRouter()
 
   const supabase = getSupabaseClient() as any
 
-  useEffect(() => {
-    const init = async () => {
+  const loadData = async () => {
+    setLoading(true)
+    setErrorState(null)
+    
+    // Timeout Promise (6 segundos)
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('TIMEOUT')), 6000)
+    )
+
+    const fetchPromise = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       
-      await fetchTournaments()
-      if (user) await fetchUserParticipations(user.id)
+      const tournamentsData = await fetchTournaments()
+      let userParticipatingIds: string[] = []
+      if (user) {
+        userParticipatingIds = await fetchUserParticipations(user.id)
+      }
+      return { tournamentsData, userParticipatingIds }
+    }
+
+    try {
+      const result = await Promise.race([fetchPromise(), timeoutPromise])
+      setTournaments(result.tournamentsData)
+      setParticipatingIds(result.userParticipatingIds)
+      setErrorState(null)
+    } catch (err: any) {
+      if (err.message === 'TIMEOUT') {
+        setErrorState('timeout')
+      } else {
+        console.error('Erro na sincronização de eventos:', err)
+        setErrorState('error')
+      }
+    } finally {
       setLoading(false)
     }
-    init()
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
-  const fetchTournaments = async () => {
+  const fetchTournaments = async (): Promise<Tournament[]> => {
     const { data, error } = await supabase
       .from('tournaments')
       .select(`
@@ -70,24 +102,26 @@ export default function EventsPage() {
 
     if (error) {
        if (error.code !== '42P01' && error.code !== 'PGRST204' && error.code !== 'PGRST205') {
-         console.error('Erro ao buscar torneios:', error.message || error)
+         throw error
        }
-       setTournaments([])
-    } else {
-       setTournaments(data as any)
+       return []
     }
+    return (data || []) as any[]
   }
 
-  const fetchUserParticipations = async (userId: string) => {
+  const fetchUserParticipations = async (userId: string): Promise<string[]> => {
     const { data, error } = await supabase
       .from('tournament_inscriptions')
       .select('tournament_id')
       .eq('user_id', userId)
 
     if (error) {
-       if (error.code !== '42P01' && error.code !== 'PGRST204' && error.code !== 'PGRST205') console.error(error)
+       if (error.code !== '42P01' && error.code !== 'PGRST204' && error.code !== 'PGRST205') {
+         throw error
+       }
+       return []
     }
-    else setParticipatingIds(data.map((p: any) => p.tournament_id))
+    return data.map((p: any) => p.tournament_id)
   }
 
   const handleCheckIn = async (tournamentId: string) => {
@@ -104,12 +138,11 @@ export default function EventsPage() {
        alert('Erro na inscrição: ' + error.message)
     } else {
        setParticipatingIds([...participatingIds, tournamentId])
-       await fetchTournaments()
+       await loadData()
     }
   }
 
   const handleViewOnMap = (lat: number, lng: number, spotId: string) => {
-     // Redireciona para o mapa com query handle
      router.push(`/?selectSpot=${spotId}`)
   }
 
@@ -130,6 +163,18 @@ export default function EventsPage() {
      })
   }, [tournaments, search, filter, participatingIds])
 
+  // Calcula dinamicamente a quantidade de eventos no mês atual e ano atual (fuso horário local)
+  const currentMonthEventsCount = useMemo(() => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+
+    return filteredTournaments.filter(t => {
+      const eventDate = new Date(t.event_date)
+      return eventDate.getFullYear() === currentYear && eventDate.getMonth() === currentMonth
+    }).length
+  }, [filteredTournaments])
+
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-[#0a0f1a]">
       <Sidebar />
@@ -145,7 +190,7 @@ export default function EventsPage() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-accent">Competições Oficiais</span>
                 </div>
                 <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter uppercase leading-none">
-                  Tournaments <span className="text-accent">&</span> Events
+                  Torneios <span className="text-accent">e</span> Eventos
                 </h1>
                 <p className="text-gray-400 font-medium max-w-xl">
                   Participe das maiores competições de pesca esportiva do Brasil. Garanta sua vaga, registre suas capturas e suba no ranking global.
@@ -157,8 +202,12 @@ export default function EventsPage() {
                   <Calendar size={32} />
                </div>
                <div className="text-right hidden md:block">
-                  <p className="text-[24px] font-black text-white leading-none">12</p>
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Eventos este mês</p>
+                  <p className="text-[24px] font-black text-white leading-none">
+                    {loading ? '...' : currentMonthEventsCount}
+                  </p>
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                    {loading ? 'Calculando...' : formatPlural(currentMonthEventsCount, 'evento este mês', 'eventos este mês')}
+                  </p>
                </div>
              </div>
           </header>
@@ -202,28 +251,42 @@ export default function EventsPage() {
                    <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sincronizando Lista...</p>
                 </div>
+             ) : errorState ? (
+                <div className="py-32 text-center bg-white/[0.02] border border-red-500/10 rounded-[40px] p-8 space-y-6">
+                   <AlertCircle size={64} className="mx-auto text-red-500" />
+                   <h3 className="text-xl font-black text-white uppercase italic">
+                     {errorState === 'timeout' ? 'Tempo limite atingido' : 'Falha na conexão'}
+                   </h3>
+                   <p className="text-gray-400 text-sm max-w-md mx-auto">
+                     {errorState === 'timeout' 
+                       ? 'A sincronização com o banco de dados demorou mais que o esperado. Verifique sua conexão e tente novamente.' 
+                       : 'Ocorreu um erro ao sincronizar a lista de eventos.'}
+                   </p>
+                   <button 
+                     onClick={loadData}
+                     className="bg-accent text-dark px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform"
+                   >
+                     Tentar novamente
+                   </button>
+                </div>
+             ) : filteredTournaments.length === 0 ? (
+                <div className="py-32 text-center bg-white/[0.02] border-2 border-dashed border-white/5 rounded-[40px]">
+                   <Ticket size={80} className="mx-auto text-gray-800 mb-6" />
+                   <h3 className="text-xl font-black text-gray-400 uppercase italic">Nenhum evento encontrado</h3>
+                   <p className="text-gray-600 text-sm mt-2">Tente mudar os filtros ou volte mais tarde para novas competições.</p>
+                </div>
              ) : (
-                <>
-                  {filteredTournaments.length === 0 ? (
-                    <div className="py-32 text-center bg-white/[0.02] border-2 border-dashed border-white/5 rounded-[40px]">
-                       <Ticket size={80} className="mx-auto text-gray-800 mb-6" />
-                       <h3 className="text-xl font-black text-gray-400 uppercase italic">Nenhum evento encontrado</h3>
-                       <p className="text-gray-600 text-sm mt-2">Tente mudar os filtros ou volte mais tarde para novas competições.</p>
-                    </div>
-                   ) : (
-                    <div className="grid grid-cols-1 gap-8">
-                       {filteredTournaments.map((t) => (
-                          <TournamentTicket 
-                            key={t.id}
-                            tournament={t}
-                            isParticipating={participatingIds.includes(t.id)}
-                            onCheckIn={handleCheckIn}
-                            onViewOnMap={(lat, lng) => handleViewOnMap(lat, lng, t.fishing_resorts.spots.id)}
-                          />
-                       ))}
-                    </div>
-                   )}
-                </>
+                <div className="grid grid-cols-1 gap-8">
+                   {filteredTournaments.map((t) => (
+                      <TournamentTicket 
+                        key={t.id}
+                        tournament={t}
+                        isParticipating={participatingIds.includes(t.id)}
+                        onCheckIn={handleCheckIn}
+                        onViewOnMap={(lat, lng) => handleViewOnMap(lat, lng, t.fishing_resorts.spots.id)}
+                      />
+                   ))}
+                </div>
              )}
           </div>
 
@@ -239,3 +302,4 @@ export default function EventsPage() {
     </div>
   )
 }
+

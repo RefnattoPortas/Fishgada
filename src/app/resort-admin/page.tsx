@@ -11,6 +11,7 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
+import PaywallModal from '@/components/common/PaywallModal'
 
 export default function ResortAdminPage() {
   const [loading, setLoading] = useState(true)
@@ -20,9 +21,12 @@ export default function ResortAdminPage() {
   const [user, setUser] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [showNewTournament, setShowNewTournament] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [paywallFeature, setPaywallFeature] = useState('')
   
   // States para dados dinâmicos
   const [tournaments, setTournaments] = useState<any[]>([])
+
   const [stats, setStats] = useState({ total_captures: 0, top_species: [] as any[] })
   const [newTournament, setNewTournament] = useState({
     title: '',
@@ -189,10 +193,31 @@ export default function ResortAdminPage() {
 
   const handleUpdateResort = async (updates: any) => {
     if (!selectedResort) return
+
+    // Removemos campos que não pertencem à tabela fishing_resorts (como o join 'spots')
+    const { id, spots, ...cleanUpdates } = updates
+
+    // Identifica se alguma alteração é de recurso exclusivo B2B (Premium/Parceiro)
+    const isPremiumUpdate = 
+      'active_highlight' in cleanUpdates || 
+      'notice_board' in cleanUpdates || 
+      'photos_fish' in cleanUpdates || 
+      'photos_menu' in cleanUpdates ||
+      'is_active' in cleanUpdates
+
+    if (isPremiumUpdate && user?.subscription_tier === 'free') {
+      let feature = 'Área do Pesqueiro Parceiro'
+      if ('active_highlight' in cleanUpdates) feature = 'Destaque e Alertas no Mapa'
+      else if ('notice_board' in cleanUpdates) feature = 'Mural de Avisos do Pesqueiro'
+      else if ('photos_fish' in cleanUpdates || 'photos_menu' in cleanUpdates) feature = 'Galeria Profissional do Pesqueiro'
+      else if ('is_active' in cleanUpdates) feature = 'Publicação do Estabelecimento no Mapa'
+
+      setPaywallFeature(feature)
+      setShowPaywall(true)
+      return
+    }
+
     setSaving(true)
-    
-    // Garantimos que temos o ID do resort, priorizando o do objeto de updates
-    // ou caindo para o resort selecionado atualmente no estado.
     const resortId = updates.id || selectedResort.id
 
     if (!resortId) {
@@ -200,10 +225,6 @@ export default function ResortAdminPage() {
       setSaving(false)
       return
     }
-    
-    // Removemos campos que não pertencem à tabela fishing_resorts (como o join 'spots')
-    // para não dar erro de coluna inexistente no Supabase
-    const { id, spots, ...cleanUpdates } = updates
     
     const { error } = await supabase
       .from('fishing_resorts')
@@ -215,7 +236,6 @@ export default function ResortAdminPage() {
        alert('Erro ao salvar: ' + (error.message || 'Erro de rede ou permissão'))
     } else {
        setSelectedResort({ ...selectedResort, ...cleanUpdates })
-       // Atualiza na lista de resorts também usando o resortId correto
        setResorts(resorts.map(r => r.id === resortId ? { ...r, ...cleanUpdates } : r))
        alert('✅ Alterações salvas com sucesso!')
     }
@@ -224,6 +244,13 @@ export default function ResortAdminPage() {
 
   const handleCreateTournament = async () => {
     if (!selectedResort || !newTournament.title || !newTournament.event_date) return
+
+    if (user?.subscription_tier === 'free') {
+      setPaywallFeature('Lançamento de Torneios Oficiais')
+      setShowPaywall(true)
+      return
+    }
+
     setSaving(true)
     const { error } = await supabase
       .from('tournaments')
@@ -404,7 +431,7 @@ export default function ResortAdminPage() {
                     Seu Pesqueiro <br /><span className="text-accent underline decoration-4 underline-offset-8">já está no mapa!</span>
                   </h2>
                   <p className="text-gray-400 font-medium max-w-xl text-lg">
-                    Seu ponto está visível para pescadores como um local público. Para ativar o **PIN ROXO de Parceiro** e liberar **Torneios** e **Alertas de Destaque**, torne-se um Parceiro Oficial.
+                    Seu ponto está visível para pescadores como um local público. Para ativar o PIN de Parceiro Oficial e liberar Torneios e Alertas de Destaque, assine o plano Parceiro.
                   </p>
                 </div>
                 <div className="flex flex-col gap-4 w-full md:w-auto">
@@ -416,7 +443,7 @@ export default function ResortAdminPage() {
                      {saving ? <span className="spinner" /> : <CheckCircle2 size={20} />} Virar Parceiro Oficial
                    </button>
                    <p className="text-[9px] text-center text-gray-500 font-black uppercase tracking-widest leading-relaxed">
-                     Plano Elite Requerido
+                     Plano Parceiro Requerido
                    </p>
                 </div>
               </div>
@@ -484,7 +511,7 @@ export default function ResortAdminPage() {
                 <header>
                    <p className="text-accent font-black text-[10px] uppercase tracking-[0.3em] mb-4">Informações da Vitrine</p>
                    <h1 className="text-4xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none">
-                      Infra <span className="text-gray-700">&</span> Servitium
+                      Infra <span className="text-gray-700">&</span> Serviços
                    </h1>
                 </header>
 
@@ -545,8 +572,8 @@ export default function ResortAdminPage() {
                            { key: 'banheiros', label: 'Banheiros', icon: Warehouse },
                            { key: 'wi_fi', label: 'Wi-Fi Hotspot', icon: Wifi },
                            { key: 'pousada', label: 'Hospedagem', icon: MapPin },
-                           { key: 'aluguel_equipamento', label: 'Aluguel Trupe', icon: Anchor },
-                           { key: 'estacionamento', label: 'Aparelho', icon: Car },
+                           { key: 'aluguel_equipamento', label: 'Aluguel de Equipamentos', icon: Anchor },
+                           { key: 'estacionamento', label: 'Estacionamento', icon: Car },
                          ].map(item => {
                            const infra = (selectedResort?.infrastructure as any) || {}
                            const active = infra[item.key]
@@ -784,14 +811,22 @@ export default function ResortAdminPage() {
                    <div>
                       <p className="text-accent font-black text-[10px] uppercase tracking-[0.3em] mb-4">Gerenciador de Ingressos</p>
                        <h1 className="text-4xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none">
-                          Events <span className="text-gray-700">&</span> Arena
+                          Torneios <span className="text-gray-700">&</span> Arena
                        </h1>
                     </div>
                     <button 
-                      onClick={() => setShowNewTournament(true)}
+                      onClick={() => {
+                        if (!selectedResort?.is_partner) {
+                          setPaywallFeature('Lançamento de Torneios Oficiais')
+                          setShowPaywall(true)
+                        } else {
+                          setShowNewTournament(true)
+                        }
+                      }}
                       className="btn-primary w-full md:w-auto px-10 py-5 text-xs font-black uppercase tracking-widest gap-2 shadow-xl shadow-accent/20 whitespace-normal"
                     >
                       <Plus size={18} /> Novo Torneio
+                      {!selectedResort?.is_partner && <Lock size={12} className="ml-1 opacity-60" />}
                     </button>
                  </header>
 
@@ -981,6 +1016,15 @@ export default function ResortAdminPage() {
               </div>
            </div>
         </div>
+      )}
+
+      {showPaywall && (
+        <PaywallModal 
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          featureName={paywallFeature}
+          user={user}
+        />
       )}
 
       <style jsx>{`

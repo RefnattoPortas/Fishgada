@@ -326,7 +326,7 @@ export default function MapFiltersBar({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {/* Lure Type */}
             <div>
-              <label className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>🎣 Isca mais eficiente</label>
+              <label htmlFor="filter-lure-type" className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>🎣 Isca mais eficiente</label>
               <select
                 id="filter-lure-type"
                 className="select"
@@ -343,7 +343,7 @@ export default function MapFiltersBar({
 
             {/* Water Type */}
             <div>
-              <label className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>💧 Tipo de água</label>
+              <label htmlFor="filter-water-type" className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>💧 Tipo de água</label>
               <select
                 id="filter-water-type"
                 className="select"
@@ -361,9 +361,9 @@ export default function MapFiltersBar({
 
           {/* Privacy type filter */}
           <div>
-            <label className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>📋 Tipo de local</label>
+            <label htmlFor="filter-privacy-type" className="label" style={{ color: theme === 'light' ? '#374151' : undefined }}>📋 Tipo de local</label>
             <select
-              className="select"
+              id="filter-privacy-type"
               value={filters.privacyType}
               onChange={e => set('privacyType', e.target.value)}
               style={{ minHeight: 40 }}

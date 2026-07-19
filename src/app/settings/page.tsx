@@ -215,13 +215,18 @@ function SettingsContent() {
                           </div>
                         )}
                       </div>
-                      <button className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-accent text-dark flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
-                        <Camera size={16} />
+                      <button
+                        type="button"
+                        aria-label="Foto sincronizada pelo Google — não é possível alterar aqui"
+                        title="Foto sincronizada pelo Google — não é possível alterar aqui"
+                        className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-accent text-dark flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110 cursor-default opacity-60"
+                      >
+                        <Camera size={16} aria-hidden="true" />
                       </button>
                     </div>
                     <div>
                       <p className="text-white font-bold text-sm">Foto do Perfil</p>
-                      <p className="text-gray-500 text-xs">Sincronizada automaticamente com seu Google Auth.</p>
+                      <p className="text-gray-500 text-xs mt-1">Sincronizada com o Google. Para alterar, acesse sua conta Google.</p>
                     </div>
                   </div>
 

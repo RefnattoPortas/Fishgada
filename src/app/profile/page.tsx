@@ -6,10 +6,11 @@ import {
   User, Trophy, Fish, MapPin, Calendar, Star, TrendingUp, Award, 
   Clock, Warehouse, Plus, ArrowRight, Megaphone, Utensils, MessageSquare, 
   Scale, Ruler, ChevronRight, Image as ImageIcon, Info, Loader2, 
-  AlertCircle, Heart, Share2, Users, UserPlus, UserMinus, Search, Building, ShieldOff
+  AlertCircle, Heart, Share2, Users, UserPlus, UserMinus, Search, Building, ShieldOff, RefreshCw
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { getRankByLevel } from '@/lib/utils/ranks'
+import { formatPlural } from '@/lib/utils/i18n'
 import NewResortForm from '@/components/map/NewResortForm'
 import dynamic from 'next/dynamic'
 
@@ -27,6 +28,8 @@ export default function ProfilePage() {
   const [achievements, setAchievements] = useState<any[]>([])
   const [inscriptions, setInscriptions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorLoading, setErrorLoading] = useState(false)
+
   const [activeTab, setActiveTab] = useState<'general' | 'business'>('general')
   const [isResortOwner, setIsResortOwner] = useState(false)
   const [showResortForm, setShowResortForm] = useState(false)
@@ -109,104 +112,118 @@ export default function ProfilePage() {
   }, [profile])
 
   const fetchProfileData = async () => {
+    setLoading(true)
+    setErrorLoading(false)
     const supabase = getSupabaseClient() as any
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      setUser(user)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
       
-      // Fetch Profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
-      setProfile(profileData)
-
-      // Fetch Achievements
-      const { data: userAch } = await supabase
-        .from('user_achievements')
-        .select('*, achievements(*)')
-        .eq('user_id', user.id)
-      
-      if (userAch) setAchievements(userAch)
-
-      // Fetch Social Data (Follows & Friends)
-      const { data: followsData } = await supabase
-        .from('follows')
-        .select('*, followed:following_id(*)')
-        .eq('follower_id', user.id)
-      if (followsData) setFriends(followsData)
-
-      const { data: resortFollowsData } = await supabase
-        .from('resort_follows')
-        .select('*, fishing_resorts(*, spots(title))')
-        .eq('user_id', user.id)
-      if (resortFollowsData) setFollowingResorts(resortFollowsData)
-
-      // Fetch Tournament Inscriptions
-      const { data: userInscriptions } = await supabase
-        .from('tournament_participants')
-        .select(`
-          id,
-          created_at,
-          tournaments(
-            id,
-            title,
-            event_date,
-            status,
-            fishing_resorts(
-              spots(title)
-            )
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-      
-      if (userInscriptions) setInscriptions(userInscriptions)
-
-      // Fetch Full Captures for Feed
-      const { data: fullCaptures } = await supabase
-        .from('captures')
-        .select('*, spots(title)')
-        .eq('user_id', user.id)
-        .order('captured_at', { ascending: false })
-
-      if (fullCaptures) {
-        setUserCaptures(fullCaptures)
-        const captureList = fullCaptures as any[]
-        const uniqueSpecies = new Set(captureList.map((c: any) => c.species)).size
-        const totalWeight = captureList.reduce((acc: number, c: any) => acc + (c.weight_kg || 0), 0)
+      if (user) {
+        setUser(user)
         
-        setStats({
-          total_captures: fullCaptures.length,
-          total_weight: Math.round(totalWeight * 10) / 10,
-          unique_species: uniqueSpecies,
-          medals_count: userAch?.length || 0
-        })
+        // Fetch Profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
+        if (profileError) throw profileError
+        setProfile(profileData)
 
-        // Fetch Friends Feed
-        if (followsData && followsData.length > 0) {
-          const followingIds = followsData.map((f: any) => f.following_id)
-          const { data: fCaptures } = await supabase
-            .from('captures')
-            .select('*, spots(title), profiles:user_id(username, display_name, avatar_url, level), interactions(type, user_id)')
-            .in('user_id', followingIds)
-            .order('captured_at', { ascending: false })
-            .limit(20)
-          if (fCaptures) setFriendsCaptures(fCaptures)
+        // Fetch Achievements
+        const { data: userAch, error: achError } = await supabase
+          .from('user_achievements')
+          .select('*, achievements(*)')
+          .eq('user_id', user.id)
+        if (achError) throw achError
+        if (userAch) setAchievements(userAch)
+
+        // Fetch Social Data (Follows & Friends)
+        const { data: followsData, error: followsError } = await supabase
+          .from('follows')
+          .select('*, followed:following_id(*)')
+          .eq('follower_id', user.id)
+        if (followsError) throw followsError
+        if (followsData) setFriends(followsData)
+
+        const { data: resortFollowsData, error: resortFollowsError } = await supabase
+          .from('resort_follows')
+          .select('*, fishing_resorts(*, spots(title))')
+          .eq('user_id', user.id)
+        if (resortFollowsError) throw resortFollowsError
+        if (resortFollowsData) setFollowingResorts(resortFollowsData)
+
+        // Fetch Tournament Inscriptions
+        const { data: userInscriptions, error: inscError } = await supabase
+          .from('tournament_participants')
+          .select(`
+            id,
+            created_at,
+            tournaments(
+              id,
+              title,
+              event_date,
+              status,
+              fishing_resorts(
+                spots(title)
+              )
+            )
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+        if (inscError) throw inscError
+        if (userInscriptions) setInscriptions(userInscriptions)
+
+        // Fetch Full Captures for Feed
+        const { data: fullCaptures, error: capturesError } = await supabase
+          .from('captures')
+          .select('*, spots(title)')
+          .eq('user_id', user.id)
+          .order('captured_at', { ascending: false })
+        if (capturesError) throw capturesError
+
+        if (fullCaptures) {
+          setUserCaptures(fullCaptures)
+          const captureList = fullCaptures as any[]
+          const uniqueSpecies = new Set(captureList.map((c: any) => c.species)).size
+          const totalWeight = captureList.reduce((acc: number, c: any) => acc + (c.weight_kg || 0), 0)
+          
+          setStats({
+            total_captures: fullCaptures.length,
+            total_weight: Math.round(totalWeight * 10) / 10,
+            unique_species: uniqueSpecies,
+            medals_count: userAch?.length || 0
+          })
+
+          // Fetch Friends Feed
+          if (followsData && followsData.length > 0) {
+            const followingIds = followsData.map((f: any) => f.following_id)
+            const { data: fCaptures, error: fCapturesError } = await supabase
+              .from('captures')
+              .select('*, spots(title), profiles:user_id(username, display_name, avatar_url, level), interactions(type, user_id)')
+              .in('user_id', followingIds)
+              .order('captured_at', { ascending: false })
+              .limit(20)
+            if (fCapturesError) throw fCapturesError
+            if (fCaptures) setFriendsCaptures(fCaptures)
+          }
         }
+        
+        // Check Resort Ownership
+        const { data: resort, error: resortError } = await supabase
+          .from('fishing_resorts')
+          .select('id')
+          .eq('owner_id', user.id)
+          .limit(1)
+        if (resortError) throw resortError
+        setIsResortOwner(!!resort && resort.length > 0)
       }
-      
-      // Check Resort Ownership
-      const { data: resort } = await supabase
-        .from('fishing_resorts')
-        .select('id')
-        .eq('owner_id', user.id)
-        .limit(1)
-      setIsResortOwner(!!resort && resort.length > 0)
+    } catch (e) {
+      console.error('Erro ao carregar dados do perfil:', e)
+      setErrorLoading(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Social Actions
@@ -392,7 +409,47 @@ export default function ProfilePage() {
              </button>
           </div>
 
-          {activeTab === 'general' ? (
+          {loading ? (
+            <div className="space-y-8 animate-pulse" aria-busy="true" aria-label="Carregando perfil">
+              {/* Skeleton Header Card */}
+              <div className="relative glass-elevated rounded-[40px] p-8 md:p-12 border border-white/5 overflow-hidden">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                  <div className="w-32 h-32 md:w-44 md:h-44 rounded-[48px] bg-white/5 border border-white/10" />
+                  <div className="flex-1 space-y-4 w-full">
+                    <div className="h-10 md:h-14 bg-white/5 rounded-2xl w-2/3 md:w-1/2 mx-auto md:mx-0" />
+                    <div className="h-4 bg-white/5 rounded-lg w-1/3 md:w-1/4 mx-auto md:mx-0" />
+                    <div className="h-6 bg-white/5 rounded-xl w-full md:w-3/4 mx-auto md:mx-0" />
+                    <div className="h-8 bg-white/5 rounded-full w-24 mx-auto md:mx-0" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Skeleton Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="glass p-6 rounded-[28px] border border-white/5 flex flex-col items-center space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5" />
+                    <div className="h-8 bg-white/5 rounded-lg w-16" />
+                    <div className="h-3 bg-white/5 rounded-md w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : errorLoading ? (
+            <div className="py-24 text-center bg-white/[0.02] border border-red-500/10 rounded-[40px] p-8 space-y-6">
+              <AlertCircle size={64} className="mx-auto text-red-500" />
+              <h3 className="text-xl font-black text-white uppercase italic">Erro ao Carregar Perfil</h3>
+              <p className="text-gray-400 text-sm max-w-md mx-auto">
+                Não conseguimos carregar as informações do seu perfil. Verifique sua conexão com a internet e tente novamente.
+              </p>
+              <button 
+                onClick={fetchProfileData}
+                className="bg-accent text-dark px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform flex items-center gap-2 mx-auto"
+              >
+                <RefreshCw size={14} /> Tentar novamente
+              </button>
+            </div>
+          ) : activeTab === 'general' ? (
             <>
               {/* Header Card */}
               <div className="relative glass-elevated rounded-[40px] p-8 md:p-12 border border-white/5 overflow-hidden">
@@ -420,10 +477,10 @@ export default function ProfilePage() {
                       <div className="space-y-4 max-w-xl">
                         <input value={editForm.display_name} onChange={e => setEditForm({...editForm, display_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white" placeholder="Nome" />
                         <div className="grid grid-cols-2 gap-2">
-                          <input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white" placeholder="Cidade" />
-                          <select value={editForm.state} onChange={e => setEditForm({...editForm, state: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white">
-                            {BRAZILIAN_STATES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
-                          </select>
+                           <input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white" placeholder="Cidade" />
+                           <select value={editForm.state} onChange={e => setEditForm({...editForm, state: e.target.value})} className="bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white">
+                             {BRAZILIAN_STATES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
+                           </select>
                         </div>
                         <textarea value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} rows={2} className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 text-white resize-none" placeholder="Bio" />
                       </div>
@@ -449,10 +506,10 @@ export default function ProfilePage() {
               {/* Stats Bar */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Capturas', value: stats.total_captures, icon: Fish, color: '#00d4aa' },
+                  { label: formatPlural(stats.total_captures, 'captura', 'capturas'), value: stats.total_captures, icon: Fish, color: '#00d4aa' },
                   { label: 'Peso Total', value: `${stats.total_weight}kg`, icon: TrendingUp, color: '#3b82f6' },
-                  { label: 'Espécies', value: stats.unique_species, icon: Star, color: '#f59e0b' },
-                  { label: 'Medalhas', value: stats.medals_count, icon: Award, color: '#ec4899' },
+                  { label: formatPlural(stats.unique_species, 'espécie', 'espécies'), value: stats.unique_species, icon: Star, color: '#f59e0b' },
+                  { label: formatPlural(stats.medals_count, 'medalha', 'medalhas'), value: stats.medals_count, icon: Award, color: '#ec4899' },
                 ].map((stat) => (
                   <div key={stat.label} className="glass p-6 rounded-[28px] border border-white/5 flex flex-col items-center text-center">
                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-accent mb-3" style={{ color: stat.color }}>
@@ -463,6 +520,7 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
+
 
               {/* Sub-Tabs Nav */}
               <div className="flex items-center gap-2 p-1.5 glass rounded-2xl border border-white/5 overflow-x-auto no-scrollbar">
