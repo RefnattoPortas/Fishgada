@@ -5,8 +5,12 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // if "next" is in search params, use it as the redirection URL
-  const next = searchParams.get('next') ?? '/'
+
+  // Validar redirect — apenas caminhos relativos são permitidos
+  let next = searchParams.get('next') ?? '/'
+  if (next.startsWith('http') || next.startsWith('//')) {
+    next = '/'
+  }
 
   if (code) {
     const cookieStore = await cookies()

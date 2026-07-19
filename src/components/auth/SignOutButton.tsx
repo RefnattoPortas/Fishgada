@@ -24,12 +24,14 @@ export default function SignOutButton({ isExpanded }: SignOutButtonProps) {
   }
 
   return (
-    <button 
+    <button
       onClick={handleSignOut}
       disabled={isLoading}
       className="sidebar-item w-full text-left border-none bg-transparent"
+      aria-label="Sair do aplicativo"
+      title={!isExpanded ? 'Sair' : undefined}
     >
-      <LogOut size={18} color="var(--color-accent-danger)" style={{ flexShrink: 0 }} />
+      <LogOut size={18} color="var(--color-accent-danger)" style={{ flexShrink: 0 }} aria-hidden="true" />
       {isExpanded && (
         <span className="fade-in" style={{ fontSize: 14, color: 'var(--color-accent-danger)' }}>
           {isLoading ? 'Saindo...' : 'Sair'}

@@ -41,13 +41,25 @@ export default function ResortAdminPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      try {
+        // Server-side validation via API
+        const res = await fetch('/api/auth/check-partner')
+        if (!res.ok) {
+          router.push('/')
+          return
+        }
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/')
+          return
+        }
+        setUser(user)
+        await fetchResorts(user.id)
+      } catch (err) {
+        console.warn('Erro na verificação de parceiro:', err)
         router.push('/')
-        return
       }
-      setUser(user)
-      await fetchResorts(user.id)
     }
     checkAuth()
   }, [])

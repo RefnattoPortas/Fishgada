@@ -72,6 +72,16 @@ export default function FishingMap({
     onMapClickRef.current = onMapClick
   }, [onMapClick])
 
+  // Recalcular tamanho do mapa quando sidebar abre/fecha
+  useEffect(() => {
+    if (!leafletMapRef.current || !mapRef.current) return
+    const handler = () => {
+      setTimeout(() => leafletMapRef.current?.invalidateSize(), 350)
+    }
+    window.addEventListener('sidebarToggle', handler)
+    return () => window.removeEventListener('sidebarToggle', handler)
+  }, [isLoaded])
+
   // Obter localização do usuário
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -335,24 +345,72 @@ export default function FishingMap({
     initUserMarker()
   }, [userLocation, isLoaded])
 
-  // Renderizar pins dos spots
+  // Renderizar pins dos spots com clustering
   useEffect(() => {
     if (!leafletMapRef.current || !isLoaded) return
 
     const renderMarkers = async () => {
       const L = (await import('leaflet')).default
+      let MarkerClusterGroup: any
+      try {
+        const mod = await import('leaflet.markercluster')
+        MarkerClusterGroup = mod.MarkerClusterGroup || mod.default || mod
+      } catch {
+        MarkerClusterGroup = null
+      }
       const map = leafletMapRef.current!
 
       // Limpar markers anteriores
-      markersRef.current.forEach(m => m.remove())
+      markersRef.current.forEach(m => {
+        if (m.remove) m.remove()
+      })
       markersRef.current = []
 
-      // Filtrar e Ordenar spots (Pesqueiros ficam em cima/por último no render)
+      // Criar cluster group se disponível
+      let clusterGroup: any = null
+      if (MarkerClusterGroup) {
+        clusterGroup = new MarkerClusterGroup({
+          chunkedLoading: true,
+          maxClusterRadius: 50,
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
+          zoomToBoundsOnClick: true,
+          disableClusteringAtZoom: 15,
+          iconCreateFunction: (cluster: any) => {
+            const count = cluster.getChildCount()
+            const hasPartner = cluster.getAllChildMarkers().some((m: any) => m.options?.isPartner)
+            const color = hasPartner ? '#a855f7' : '#00d4aa'
+            return L.divIcon({
+              className: '',
+              html: `
+                <div style="
+                  width: 44px; height: 44px;
+                  background: ${color}22;
+                  border: 2.5px solid ${color};
+                  border-radius: 50%;
+                  display: flex; align-items: center; justify-content: center;
+                  box-shadow: 0 0 20px ${color}44;
+                  font-weight: 900; font-size: 12px; color: white;
+                  font-family: Inter, sans-serif;
+                ">
+                  ${count}
+                  ${hasPartner ? '<span style="position:absolute;top:-2px;right:-2px;font-size:8px;">👑</span>' : ''}
+                </div>
+              `,
+              iconSize: [44, 44],
+              iconAnchor: [22, 22],
+            })
+          },
+        })
+        map.addLayer(clusterGroup)
+      }
+
+      // Filtrar spots
       let filteredSpots = [...spots]
       if (filterLureType) {
         filteredSpots = spots.filter(s => s.latest_lure_type === filterLureType)
       }
-      
+
       // Ordena para que Pesqueiros (is_resort) e Parceiros (is_resort_partner) fiquem no topo
       filteredSpots.sort((a, b) => {
         const scoreA = ((a as any).is_resort ? 1 : 0) + ((a as any).is_resort_partner ? 2 : 0)
@@ -371,7 +429,6 @@ export default function FishingMap({
         // Gerenciar sobreposição (jitter)
         const coordKey = `${lat.toFixed(6)},${lng.toFixed(6)}`
         if (usedCoords.has(coordKey)) {
-          // Deslocamento de ~10m para não ficarem um em cima do outro
           lat += (Math.random() - 0.5) * 0.0001
           lng += (Math.random() - 0.5) * 0.0001
         }
@@ -390,7 +447,12 @@ export default function FishingMap({
             weight: 1,
             opacity: 0.4,
             radius: spot.fuzz_radius_m,
-          }).addTo(map)
+          })
+          if (clusterGroup) {
+            clusterGroup.addLayer(circle)
+          } else {
+            map.addLayer(circle)
+          }
           markersRef.current.push(circle)
         }
 
@@ -399,13 +461,12 @@ export default function FishingMap({
         const isPartner = (spot as any).is_resort_partner
         const resortInfra = (spot as any).resort_infrastructure || {}
         const hasRestaurant = resortInfra.restaurante === true
-        // Parceiro com restaurante = talheres + anzol | Parceiro normal = casa | Demais = vara de pesca
         const pinEmoji = isPartner
           ? (hasRestaurant ? '🍽️🎣' : '🏡')
           : '🎣'
         const baseColor = isPartner ? '#000000' : (isSelected ? privacyColor : 'var(--color-bg-card, #121e30)')
-        const borderColor = isPartner ? '#a855f7' : privacyColor // Verde para resorts comuns, roxo apenas para parceiros
-        
+        const borderColor = isPartner ? '#a855f7' : privacyColor
+
         const icon = L.divIcon({
           className: '',
           html: `
@@ -441,6 +502,8 @@ export default function FishingMap({
                 box-shadow: 0 4px 20px ${isPartner ? '#a855f755' : privacyColor + '55'}, 
                             0 0 0 ${isSelected ? '6px' : '3px'} ${isPartner ? '#a855f722' : privacyColor + '22'};
                 transition: all 0.2s ease;
+                role: img;
+                aria-label: Marcador de ${spot.title};
               ">
               </div>
               <span style="
@@ -452,12 +515,12 @@ export default function FishingMap({
                 filter: ${isPartner ? 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' : 'none'};
               ">${pinEmoji}</span>
               ${spot.is_verified
-                ? `<div style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#00d4aa;border-radius:50%;border:2px solid #0a0f1a;font-size:8px;display:flex;align-items:center;justify-content:center;">✓</div>`
+                ? `<div style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#00d4aa;border-radius:50%;border:2px solid #0a0f1a;font-size:8px;display:flex;align-items:center;justify-content:center;" aria-label="Verificado">✓</div>`
                 : ''}
               ${isFuzzed
                 ? `<div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-size:8px;background:#f59e0b;color:#000;padding:1px 5px;border-radius:8px;white-space:nowrap;font-weight:700;">~${Math.round((spot.fuzz_radius_m || 0) / 1000)}km</div>`
                 : ''}
-              
+
               ${isResort && spot.resort_active_highlight
                 ? `
                 <div style="
@@ -492,24 +555,41 @@ export default function FishingMap({
         })
 
         const marker = L.marker([lat, lng] as LatLngExpression, { icon })
-          .addTo(map)
-          .bindTooltip(
-            `<div style="font-family:Inter,sans-serif;font-size:13px;">
-              <strong>${spot.title}</strong>
-              ${spot.total_captures ? `<br/><span style="color:#00d4aa">🎣 ${spot.total_captures} capturas</span>` : ''}
-              ${spot.latest_lure_type ? `<br/>${LURE_LABELS[spot.latest_lure_type] || spot.latest_lure_type}` : ''}
-            </div>`,
-            { className: 'custom-tooltip', direction: 'top' }
-          )
+        ;(marker as any).options.isPartner = isPartner
+
+        marker.bindTooltip(
+          `<div style="font-family:Inter,sans-serif;font-size:13px;">
+            <strong>${spot.title}</strong>
+            ${spot.total_captures ? `<br/><span style="color:#00d4aa">🎣 ${spot.total_captures} capturas</span>` : ''}
+            ${spot.latest_lure_type ? `<br/>${LURE_LABELS[spot.latest_lure_type] || spot.latest_lure_type}` : ''}
+          </div>`,
+          { className: 'custom-tooltip', direction: 'top' }
+        )
 
         marker.on('click', () => {
           onSpotSelect?.(spot)
         })
-      markersRef.current.push(marker)
+
+        if (clusterGroup) {
+          clusterGroup.addLayer(marker)
+        } else {
+          map.addLayer(marker)
+        }
+        markersRef.current.push(marker)
       }
     }
 
     renderMarkers()
+
+    return () => {
+      const map = leafletMapRef.current
+      if (map && (map as any)._layers) {
+        markersRef.current.forEach(m => {
+          if (m.remove) m.remove()
+        })
+        markersRef.current = []
+      }
+    }
   }, [spots, isLoaded, selectedSpotId, filterLureType, onSpotSelect])
 
   // Gerenciar camada de preview do download (Círculo de 50km)
@@ -687,29 +767,32 @@ export default function FishingMap({
            )}
 
           {/* Zoom Controls (à direita da legenda) */}
-          <div className="flex flex-col gap-2">
-             <button
-              onClick={handleFindMe}
-              className="w-10 h-10 glass rounded-xl flex items-center justify-center text-accent hover:bg-white/10 transition-all border border-accent/30 shadow-[0_0_15px_rgba(0,183,168,0.2)]"
-              title="Encontrar minha localização"
-             >
-                {/* Assuming 'Navigation' component is imported or defined elsewhere */}
-                {/* If not, you might need to import it or replace with an SVG/icon library */}
-                <Navigation size={18} fill="currentColor" />
-             </button>
-             <button
-              onClick={() => leafletMapRef.current?.zoomIn()}
-              className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
-             >
-                +
-             </button>
-             <button
-              onClick={() => leafletMapRef.current?.zoomOut()}
-              className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
-             >
-                −
-             </button>
-          </div>
+           <div className="flex flex-col gap-2" role="group" aria-label="Controles do mapa">
+              <button
+               onClick={handleFindMe}
+               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-accent hover:bg-white/10 transition-all border border-accent/30 shadow-[0_0_15px_rgba(0,183,168,0.2)]"
+               title="Encontrar minha localização"
+               aria-label="Minha localização — centralizar mapa na sua posição atual"
+              >
+                 <Navigation size={18} fill="currentColor" />
+              </button>
+              <button
+               onClick={() => leafletMapRef.current?.zoomIn()}
+               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
+               title="Aumentar zoom"
+               aria-label="Aumentar zoom do mapa"
+              >
+                 +
+              </button>
+              <button
+               onClick={() => leafletMapRef.current?.zoomOut()}
+               className="w-10 h-10 glass rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all font-black text-lg border border-white/10"
+               title="Diminuir zoom"
+               aria-label="Diminuir zoom do mapa"
+              >
+                 −
+              </button>
+           </div>
         </div>
       )}
     </div>

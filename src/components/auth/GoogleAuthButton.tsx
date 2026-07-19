@@ -12,9 +12,10 @@ export default function LoginButton({ isExpanded }: LoginButtonProps) {
     <Link
       href="/login"
       className="sidebar-item"
-      title="Entrar ou Cadastrar"
+      aria-label="Fazer login ou cadastrar"
+      title={!isExpanded ? 'Entrar' : undefined}
     >
-      <LogIn size={20} style={{ flexShrink: 0, color: 'var(--color-accent-primary)' }} />
+      <LogIn size={20} style={{ flexShrink: 0, color: 'var(--color-accent-primary)' }} aria-hidden="true" />
       {isExpanded && (
         <span className="fade-in" style={{ fontSize: 14 }}>
           Entrar / Cadastro

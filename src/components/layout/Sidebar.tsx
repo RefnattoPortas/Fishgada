@@ -1,34 +1,33 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Map, Fish, BookOpen, Trophy, User, Settings,
-  ChevronRight, Wifi, WifiOff, Plus, Bell, LogOut,
-  LogIn, Award, Crown, Store, Building, Menu, X, Compass, Users,
-  LifeBuoy, ShieldAlert
+  ChevronRight, Wifi, WifiOff,
+  Award, Crown, Store, Compass,
+  ShieldAlert, Menu, X
 } from 'lucide-react'
 import { getSupabaseClient } from '@/lib/supabase/client'
-import B2BLanding from '@/components/partners/B2BLanding'
 import LoginButton from '@/components/auth/GoogleAuthButton'
 import SignOutButton from '@/components/auth/SignOutButton'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { getRankByLevel } from '@/lib/utils/ranks'
 
+const STORAGE_KEY = 'fishgada_sidebar_expanded'
+
 const navItems = [
-  { href: '/radar',      icon: Map,      label: 'Mapa',           id: 'nav-map' },
-  { href: '/explore',    icon: Compass,  label: 'Explorar Locais',id: 'nav-explore' },
-  { href: '/captures',   icon: Fish,     label: 'Minhas Capturas', id: 'nav-captures' },
-  { href: '/especies',   icon: Award,    label: 'Catálogo / Álbum', id: 'nav-species' },
-  { href: '/ranking',     icon: Crown,   label: 'Ranking',        id: 'nav-ranking' },
-  { href: '/events',      icon: Trophy,  label: 'Torneios & Eventos', id: 'nav-tournaments' },
-  { href: '/logbook',    icon: BookOpen, label: 'Diário de Pesca', id: 'nav-logbook' },
+  { href: '/radar',    icon: Map,      label: 'Radar',           desc: 'Mapa com pontos de pesca' },
+  { href: '/explore',  icon: Compass,  label: 'Explorar',        desc: 'Descobrir novos locais' },
+  { href: '/captures', icon: Fish,     label: 'Capturas',        desc: 'Minhas capturas registradas' },
+  { href: '/especies', icon: Award,    label: 'Espécies',        desc: 'Catálogo de espécies' },
+  { href: '/ranking',  icon: Crown,    label: 'Ranking',         desc: 'Ranking dos pescadores' },
+  { href: '/events',   icon: Trophy,   label: 'Eventos',         desc: 'Torneios e competições' },
+  { href: '/logbook',  icon: BookOpen, label: 'Diário de pesca', desc: 'Registro completo de pescarias' },
 ]
 
 interface SidebarProps {
   isOnline?: boolean
   pendingSync?: number
-  userLevel?: number
-  userXP?: number
 }
 
 export default function Sidebar({
@@ -40,13 +39,17 @@ export default function Sidebar({
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [isResortOwner, setIsResortOwner] = useState(false)
-  const [showLanding, setShowLanding] = useState(false)
   const [isOpenMobile, setIsOpenMobile] = useState(false)
+  const toggleBtnRef = useRef<HTMLButtonElement>(null)
+  const mobileBtnRef = useRef<HTMLButtonElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
+  // Deriva a exibição expandida: desktop (expanded) ou mobile aberto
+  const showExpanded = expanded || isOpenMobile
 
   useEffect(() => {
     const supabase = getSupabaseClient()
-    
+
     const fetchProfile = async (uid: string) => {
       const { data } = await supabase
         .from('profiles')
@@ -56,16 +59,14 @@ export default function Sidebar({
       setProfile(data)
     }
 
-    // Check initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) fetchProfile(user.id)
     })
 
-    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const safeSession = (session && typeof session === 'object') ? session : null
-      
+
       setUser(safeSession?.user ?? null)
       if (safeSession?.user) {
         fetchProfile(safeSession.user.id)
@@ -95,7 +96,45 @@ export default function Sidebar({
   const userLevel = profile?.level || 1
   const userRank = getRankByLevel(userLevel)
 
-  const showDefaultMobileButton = pathname !== '/' && pathname !== '/radar'
+  // Responsive: inicializa estado do sidebar baseado no viewport
+  useEffect(() => {
+    const checkDesktop = () => {
+      const desktop = window.innerWidth >= 768
+      if (!desktop) {
+        setExpanded(false)
+      } else {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved !== null) {
+          setExpanded(saved === 'true')
+        } else {
+          setExpanded(true)
+        }
+      }
+    }
+    checkDesktop()
+    window.addEventListener('resize', checkDesktop)
+    return () => window.removeEventListener('resize', checkDesktop)
+  }, [])
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded(prev => {
+      const next = !prev
+      if (window.innerWidth >= 768) {
+        localStorage.setItem(STORAGE_KEY, String(next))
+      }
+      window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { expanded: next } }))
+      return next
+    })
+  }, [])
+
+  // Dispara evento para o mapa recalcular quando sidebar muda
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sidebarToggle', { detail: { expanded, isOpenMobile } }))
+    }
+  }, [expanded, isOpenMobile])
+
+  const showDefaultMobileButton = pathname !== '/'
 
   useEffect(() => {
     const handleToggle = () => setIsOpenMobile(prev => !prev)
@@ -103,9 +142,28 @@ export default function Sidebar({
     return () => window.removeEventListener('toggleMobileMenu', handleToggle as EventListener)
   }, [])
 
+  // Foco e teclado no menu mobile
   useEffect(() => {
+    if (!isOpenMobile) return
+
+    const sidebar = sidebarRef.current
+    const firstNavLink = sidebar?.querySelector('nav a') as HTMLElement | null
+    firstNavLink?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpenMobile(false)
+        mobileBtnRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpenMobile])
+
+  const closeMobile = useCallback(() => {
     if (isOpenMobile) {
-      setExpanded(true)
+      setIsOpenMobile(false)
+      mobileBtnRef.current?.focus()
     }
   }, [isOpenMobile])
 
@@ -113,233 +171,275 @@ export default function Sidebar({
     <>
       {/* Mobile Toggle Button */}
       {showDefaultMobileButton && (
-        <button 
-          onClick={() => setIsOpenMobile(!isOpenMobile)}
+        <button
+          ref={mobileBtnRef}
+          onClick={() => setIsOpenMobile(prev => !prev)}
           className="fixed top-4 left-4 z-[9999] md:hidden flex h-12 w-12 items-center justify-center rounded-xl bg-[#0f1829] text-white shadow-2xl border border-white/10 hover:bg-white/5 transition-colors"
+          aria-label={isOpenMobile ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={isOpenMobile}
+          aria-controls="sidebar"
         >
-          {isOpenMobile ? <X size={20} /> : <Menu size={20} />}
+          {isOpenMobile ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
         </button>
       )}
 
       {/* Backdrop for Mobile */}
       {isOpenMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998] md:hidden transition-all duration-300"
-          onClick={() => setIsOpenMobile(false)}
+          onClick={() => {
+            setIsOpenMobile(false)
+            mobileBtnRef.current?.focus()
+          }}
+          aria-hidden="true"
         />
       )}
 
       <aside
         id="sidebar"
-        className={`glass flex flex-col transition-transform duration-300 z-[9999]
-          ${isOpenMobile ? 'translate-x-0 border-r-0 shadow-none' : '-translate-x-full md:translate-x-0 border-r border-white/5'} 
+        ref={sidebarRef}
+        className={`glass flex flex-col transition-[width,transform] duration-300 z-[9999]
+          ${isOpenMobile ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           fixed inset-y-0 left-0 md:relative h-full`}
         style={{
-          width: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
-          minWidth: expanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
+          width: showExpanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
+          minWidth: showExpanded ? 'var(--sidebar-expanded)' : 'var(--sidebar-width)',
         }}
+        aria-label="Navegação principal"
       >
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="absolute hidden md:flex items-center justify-center cursor-pointer z-10 transition-transform duration-300"
-        style={{
-          right: -12, top: 28,
-          width: 24, height: 24,
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-strong)',
-          borderRadius: 6,
-          transform: expanded ? 'rotate(180deg)' : 'none',
-        }}
-      >
-        <ChevronRight size={14} color="var(--color-text-secondary)" />
-      </button>
+        <button
+          ref={toggleBtnRef}
+          onClick={toggleExpanded}
+          className="absolute hidden md:flex items-center justify-center cursor-pointer z-10 transition-transform duration-300"
+          style={{
+            right: -12, top: 28,
+            width: 24, height: 24,
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-strong)',
+            borderRadius: 6,
+            transform: expanded ? 'rotate(180deg)' : 'none',
+          }}
+          aria-label={expanded ? 'Recolher menu' : 'Expandir menu'}
+          aria-expanded={expanded}
+          aria-controls="sidebar"
+        >
+          <ChevronRight size={14} color="var(--color-text-secondary)" aria-hidden="true" />
+        </button>
 
-      <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden h-full scrollbar-none">
-        {/* Logo */}
-        <div className={`flex items-center justify-center p-0 mb-2 mt-[20px] transition-all duration-300 
-          ${expanded ? (isOpenMobile ? 'h-[60px]' : 'h-[70px]') : 'h-[45px]'}`}>
-          <Link href="/radar" className="flex items-center justify-center cursor-pointer group w-full h-full">
-            <div className={`flex items-center justify-center overflow-hidden transition-all duration-500 gap-3
-              ${expanded ? 'px-4 w-full h-full' : 'w-10 h-10'}`}>
-              <img 
-                src="/images/1f734841-ff76-4035-91f2-7af673684c92-removebg-preview.png" 
-                alt="Fishgada" 
-                className={`transition-all duration-500 rounded-none border-0 ${expanded ? 'h-[40px] md:h-[50px] object-contain' : 'w-8 h-8'}`} 
-              />
-              {expanded && (
-                <span className="text-2xl font-black italic tracking-tighter text-white animate-in slide-in-from-left duration-500">
-                  FISH<span className="text-cyan-400">GADA</span>
-                </span>
-              )}
-            </div>
-          </Link>
-        </div>
-
-        {/* User Profile Section - Simple & Compact */}
-        <div className={`px-2 mb-4 transition-all ${expanded ? 'mt-2' : 'mt-0'}`}>
-          {user ? (
-            <Link href="/profile" className={`flex items-center gap-3 p-2 rounded-2xl transition-all hover:bg-white/5 border border-transparent ${expanded ? 'bg-white/[0.03] border-white/5' : ''}`}>
-              <div 
-                className="relative flex-shrink-0"
-                style={{ width: expanded ? 42 : 36, height: expanded ? 42 : 36 }}
-              >
-                <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 glow-accent-small">
-                  {user.user_metadata.avatar_url ? (
-                    <img src={user.user_metadata.avatar_url} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                      <User size={expanded ? 20 : 18} className="text-gray-400" />
-                    </div>
-                  )}
-                </div>
-                <div 
-                  className="absolute -bottom-1 -right-1 text-[#000] text-[8px] font-black px-1 py-0.5 rounded-md border border-[#0a0f1a] shadow-lg"
-                  style={{ backgroundColor: userRank.color }}
-                >
-                  {userLevel}
-                </div>
-              </div>
-              
-              {expanded && (
-                <div className="fade-in flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-black text-white text-[13px] truncate leading-none uppercase tracking-tight">
-                      {user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}
-                    </p>
-                    {(profile?.plan_type === 'pro' || profile?.plan_type === 'partner' || (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())) && (
-                      <Crown size={12} className="text-blue-400 fill-blue-400/20" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 opacity-60">
-                    <userRank.icon size={10} style={{ color: userRank.color }} />
-                    <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: userRank.color }}>
-                      {userRank.title}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </Link>
-          ) : (
-             <Link href="/login" className={`flex items-center gap-3 p-3 rounded-2xl transition-all bg-accent/10 border border-accent/20 hover:bg-accent/20 ${!expanded ? 'justify-center p-2' : ''}`}>
-               <User size={20} className="text-accent" />
-               {expanded && (
-                 <span className="text-xs font-black uppercase tracking-widest text-accent fade-in">Meu Perfil</span>
-               )}
-             </Link>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 flex flex-col gap-1 px-2">
-          {navItems.map(({ href, icon: Icon, label, id, ...rest }) => {
-            const isActive = pathname === href
-            
-            // Ocultar "Assinar PRO" se já for PRO
-            const isUserPro = profile?.plan_type === 'pro' || 
-                             profile?.plan_type === 'partner' ||
-                             (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())
-            
-            if (href === '/upgrade' && isUserPro) return null
-
-            return (
-              <Link
-                key={href}
-                href={href}
-                id={id}
-                onClick={() => setIsOpenMobile(false)}
-                className={`sidebar-item ${isActive ? 'active' : ''}`}
-              >
-                <Icon size={20} style={{ flexShrink: 0 }} />
-                {expanded && (
-                  <span className="fade-in" style={{ fontSize: 14, fontWeight: isActive ? 600 : 400 }}>
-                    {label}
+        <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden h-full scrollbar-none">
+          {/* Logo */}
+          <div className={`flex items-center justify-center p-0 mb-2 mt-[20px] transition-all duration-300
+            ${showExpanded ? (isOpenMobile ? 'h-[60px]' : 'h-[70px]') : 'h-[45px]'}`}>
+            <Link href="/radar" className="flex items-center justify-center cursor-pointer group w-full h-full" aria-label="Ir para o Radar">
+              <div className={`flex items-center justify-center overflow-hidden transition-all duration-500 gap-3
+                ${showExpanded ? 'px-4 w-full h-full' : 'w-10 h-10'}`}>
+                <img
+                  src="/images/1f734841-ff76-4035-91f2-7af673684c92-removebg-preview.png"
+                  alt="Fishgada"
+                  className={`transition-all duration-500 rounded-none border-0 ${showExpanded ? 'h-[40px] md:h-[50px] object-contain' : 'w-8 h-8'}`}
+                />
+                {showExpanded && (
+                  <span className="text-2xl font-black italic tracking-tighter text-white animate-in slide-in-from-left duration-500">
+                    FISH<span className="text-cyan-400">GADA</span>
                   </span>
                 )}
-              </Link>
-            )
-          })}
-        </nav>
-
-        <div className="divider mx-2 my-2" />
-
-        <div className="px-2 sidebar-footer">
-          <div className="sidebar-item" style={{ gap: 10 }}>
-            {isOnline
-              ? <Wifi size={18} color="var(--color-accent-primary)" />
-              : <WifiOff size={18} color="var(--color-accent-danger)" />
-            }
-            {expanded && (
-              <div className="fade-in">
-                <p style={{ fontSize: 12, fontWeight: 600, color: isOnline ? 'var(--color-accent-primary)' : '#ef4444' }}>
-                  {isOnline ? 'Online' : 'Offline'}
-                </p>
               </div>
+            </Link>
+          </div>
+
+          {/* User Profile Section */}
+          <div className={`px-2 mb-4 transition-all ${showExpanded ? 'mt-2' : 'mt-0'}`}>
+            {user ? (
+              <Link
+                href="/profile"
+                className={`flex items-center gap-3 p-2 rounded-2xl transition-all hover:bg-white/5 border border-transparent ${showExpanded ? 'bg-white/[0.03] border-white/5' : ''}`}
+                aria-label={`Perfil — ${user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}`}
+                title={!showExpanded ? 'Perfil' : undefined}
+                onClick={closeMobile}
+              >
+                <div
+                  className="relative flex-shrink-0"
+                  style={{ width: showExpanded ? 42 : 36, height: showExpanded ? 42 : 36 }}
+                >
+                  <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 glow-accent-small">
+                    {user.user_metadata.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                        <User size={showExpanded ? 20 : 18} className="text-gray-400" aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className="absolute -bottom-1 -right-1 text-[#000] text-[8px] font-black px-1 py-0.5 rounded-md border border-[#0a0f1a] shadow-lg"
+                    style={{ backgroundColor: userRank.color }}
+                  >
+                    {userLevel}
+                  </div>
+                </div>
+
+                {showExpanded && (
+                  <div className="fade-in flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-black text-white text-[13px] truncate leading-none uppercase tracking-tight">
+                        {user.user_metadata.full_name || user.user_metadata.username || 'Pescador'}
+                      </p>
+                      {(profile?.plan_type === 'pro' || profile?.plan_type === 'partner' || (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())) && (
+                        <Crown size={12} className="text-blue-400 fill-blue-400/20" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 opacity-60">
+                      <userRank.icon size={10} style={{ color: userRank.color }} aria-hidden="true" />
+                      <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: userRank.color }}>
+                        {userRank.title}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className={`flex items-center gap-3 p-3 rounded-2xl transition-all bg-accent/10 border border-accent/20 hover:bg-accent/20 ${!showExpanded ? 'justify-center p-2' : ''}`}
+                aria-label="Fazer login ou cadastrar"
+                title={!showExpanded ? 'Entrar' : undefined}
+                onClick={closeMobile}
+              >
+                <User size={20} className="text-accent" aria-hidden="true" />
+                {showExpanded && (
+                  <span className="text-xs font-black uppercase tracking-widest text-accent fade-in">Meu Perfil</span>
+                )}
+              </Link>
             )}
           </div>
 
-          {user && (
-            <Link 
-              href={isResortOwner ? '/resort-admin' : '/profile?tab=business'} 
-              onClick={() => setIsOpenMobile(false)}
-              className={`sidebar-item group ${pathname === '/resort-admin' ? 'active' : ''}`}
-              style={{ 
-                background: 'rgba(0, 212, 170, 0.03)',
-                border: '1px solid rgba(0, 212, 170, 0.2)',
-                marginBottom: 8
-              }}
+          {/* Navigation */}
+          <nav className="flex-1 flex flex-col gap-1 px-2" aria-label="Seções do aplicativo">
+            {navItems.map(({ href, icon: Icon, label, desc }) => {
+              const isActive = pathname === href
+
+              const isUserPro = profile?.plan_type === 'pro' ||
+                               profile?.plan_type === 'partner' ||
+                               (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())
+
+              if (href === '/upgrade' && isUserPro) return null
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={closeMobile}
+                  className={`sidebar-item ${isActive ? 'active' : ''}`}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={`${label} — ${desc}`}
+                  title={!showExpanded ? label : undefined}
+                >
+                  <Icon size={20} style={{ flexShrink: 0 }} aria-hidden="true" />
+                  {showExpanded && (
+                    <span className="fade-in" style={{ fontSize: 14, fontWeight: isActive ? 600 : 400 }}>
+                      {label}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </nav>
+
+          <div className="divider mx-2 my-2" role="separator" />
+
+          <div className="px-2 sidebar-footer">
+            <div
+              className="sidebar-item"
+              style={{ gap: 10 }}
+              aria-label={isOnline ? 'Conectado' : 'Offline'}
+              title={!showExpanded ? (isOnline ? 'Online' : 'Offline') : undefined}
             >
-              <Store size={18} className="text-accent group-hover:scale-110 transition-transform" />
-              {expanded && (
-                <div className="flex flex-col">
-                  <span className="fade-in text-xs font-black uppercase text-accent tracking-tighter">
-                    {isResortOwner ? 'Administração' : 'Meu Pesqueiro'}
-                  </span>
-                  <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Negócios</span>
+              {isOnline
+                ? <Wifi size={18} color="var(--color-accent-primary)" aria-hidden="true" />
+                : <WifiOff size={18} color="var(--color-accent-danger)" aria-hidden="true" />
+              }
+              {showExpanded && (
+                <div className="fade-in">
+                  <p style={{ fontSize: 12, fontWeight: 600, color: isOnline ? 'var(--color-accent-primary)' : '#ef4444' }}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </p>
                 </div>
               )}
-            </Link>
-          )}
+            </div>
 
-          {profile?.is_admin && (
-            <Link 
-              href="/admin/tickets" 
-              onClick={() => setIsOpenMobile(false)}
-              className={`sidebar-item group ${pathname === '/admin/tickets' ? 'active' : ''}`}
-              style={{ 
-                background: 'rgba(239, 68, 68, 0.03)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-                marginBottom: 8
-              }}
+            {user && (
+              <Link
+                href={isResortOwner ? '/resort-admin' : '/profile?tab=business'}
+                onClick={closeMobile}
+                className={`sidebar-item group ${pathname === '/resort-admin' ? 'active' : ''}`}
+                style={{
+                  background: 'rgba(0, 212, 170, 0.03)',
+                  border: '1px solid rgba(0, 212, 170, 0.2)',
+                  marginBottom: 8
+                }}
+                aria-label={isResortOwner ? 'Administração do pesqueiro' : 'Área do parceiro'}
+                title={!showExpanded ? (isResortOwner ? 'Negócio' : 'Meu Pesqueiro') : undefined}
+              >
+                <Store size={18} className="text-accent group-hover:scale-110 transition-transform" aria-hidden="true" />
+                {showExpanded && (
+                  <div className="flex flex-col">
+                    <span className="fade-in text-xs font-black uppercase text-accent tracking-tighter">
+                      {isResortOwner ? 'Administração' : 'Meu Pesqueiro'}
+                    </span>
+                    <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Negócios</span>
+                  </div>
+                )}
+              </Link>
+            )}
+
+            {profile?.is_admin && (
+              <Link
+                href="/admin/tickets"
+                onClick={closeMobile}
+                className={`sidebar-item group ${pathname === '/admin/tickets' ? 'active' : ''}`}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.03)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  marginBottom: 8
+                }}
+                aria-label="Administração — Gestão de Tickets"
+                title={!showExpanded ? 'Administração' : undefined}
+              >
+                <ShieldAlert size={18} className="text-red-500 group-hover:scale-110 transition-transform" aria-hidden="true" />
+                {showExpanded && (
+                  <div className="flex flex-col">
+                    <span className="fade-in text-xs font-black uppercase text-red-500 tracking-tighter">
+                      Gestão Tickets
+                    </span>
+                    <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Administração</span>
+                  </div>
+                )}
+              </Link>
+            )}
+
+            <Link
+              href="/settings"
+              className="sidebar-item"
+              onClick={closeMobile}
+              aria-label="Configurações do aplicativo"
+              title={!showExpanded ? 'Configurações' : undefined}
             >
-              <ShieldAlert size={18} className="text-red-500 group-hover:scale-110 transition-transform" />
-              {expanded && (
-                <div className="flex flex-col">
-                  <span className="fade-in text-xs font-black uppercase text-red-500 tracking-tighter">
-                    Gestão Tickets
-                  </span>
-                  <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Administração</span>
-                </div>
-              )}
+              <Settings size={18} style={{ flexShrink: 0 }} aria-hidden="true" />
+              {showExpanded && <span className="fade-in" style={{ fontSize: 14 }}>Configurações</span>}
             </Link>
-          )}
 
-          <Link href="/settings" id="nav-settings" className="sidebar-item">
-            <Settings size={18} style={{ flexShrink: 0 }} />
-            {expanded && <span className="fade-in" style={{ fontSize: 14 }}>Configurações</span>}
-          </Link>
-
-          {user ? (
-            <div className="flex flex-col gap-1 pb-2">
-              <SignOutButton isExpanded={expanded} />
-            </div>
-          ) : (
-            <div className="pb-2">
-               <LoginButton isExpanded={expanded} />
-            </div>
-          )}
+            {user ? (
+              <div className="flex flex-col gap-1 pb-2">
+                <SignOutButton isExpanded={showExpanded} />
+              </div>
+            ) : (
+              <div className="pb-2">
+                <LoginButton isExpanded={showExpanded} />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
     </>
   )
 }

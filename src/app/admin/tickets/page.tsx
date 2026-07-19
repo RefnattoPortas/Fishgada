@@ -17,29 +17,46 @@ export default function AdminTicketsPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-        return
-      }
+      try {
+        // Server-side validation via API
+        const res = await fetch('/api/auth/check-admin')
+        const data = await res.json()
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
+        if (res.ok && data.isAdmin) {
+          setIsAdmin(true)
+          setLoading(false)
+          return
+        }
 
-      if (error || !(profile as any)?.is_admin) {
-        // Se der erro (ex: coluna is_admin não existe ainda), tentamos ser proativos
-        console.warn('Verificação de Admin falhou ou coluna não existe.', error)
+        // Fallback: client-side validation
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/')
+          return
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        const profileData = profile as { is_admin?: boolean } | null
+        if (!profileData?.is_admin) {
+          setIsAdmin(false)
+          setLoading(false)
+          router.push('/')
+          return
+        }
+
+        setIsAdmin(true)
+        setLoading(false)
+      } catch (err) {
+        console.warn('Erro na verificação de admin:', err)
         setIsAdmin(false)
         setLoading(false)
-        router.push('/') // Redirect non-admins
-        return
+        router.push('/')
       }
-
-      setIsAdmin(true)
-      setLoading(false)
     }
 
     checkAdmin()

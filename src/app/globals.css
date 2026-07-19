@@ -549,4 +549,63 @@
     0%, 100% { transform: translateX(0) translateY(0); }
     50% { transform: translateX(-5%) translateY(2%); }
   }
+
+  /* ── BOTTOM SHEET (Mobile) ────────────────────────── */
+  @media (max-width: 768px) {
+    [role="dialog"][aria-label^="Detalhes"] {
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  /* Desktop: Bottom Sheet vira card lateral */
+  @media (min-width: 769px) {
+    [role="dialog"][aria-label^="Detalhes"] {
+      border-radius: 24px !important;
+      box-shadow: -8px 0 40px rgba(0,0,0,0.5) !important;
+    }
+  }
+
+  /* ── REDUCED MOTION ──────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ── FOCUS VISIBLE ────────────────────────────────── */
+  *:focus-visible {
+    outline: 2px solid var(--color-accent-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ── MAP ONBOARDING ────────────────────────────────── */
+  .map-onboarding-arrow {
+    animation: map-onboarding-bounce 2s infinite;
+  }
+
+  @keyframes map-onboarding-bounce {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(4px); opacity: 0.6; }
+  }
+
+  /* ── SKELETON LOADING ──────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg,
+      var(--color-bg-card) 25%,
+      var(--color-bg-elevated) 50%,
+      var(--color-bg-card) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 }

@@ -7,8 +7,11 @@ import Link from 'next/link'
 import Sidebar from '@/components/layout/Sidebar'
 import SpotDetailsView from '@/components/map/SpotDetailsView'
 import MapFiltersBar, { MapFilters } from '@/components/map/MapFiltersBar'
+import SpotBottomSheet from '@/components/map/SpotBottomSheet'
+import MapOnboarding from '@/components/map/MapOnboarding'
+import RecommendedSpots from '@/components/map/RecommendedSpots'
 import type { SpotMapView } from '@/types/database'
-import { Plus, RefreshCw, MapPin, Warehouse, Flame, Download, Info, Fish, Store } from 'lucide-react'
+import { Plus, RefreshCw, MapPin, Warehouse, Flame, Download, Info, Fish, Store, Star, X } from 'lucide-react'
 import type { ResortHighlight } from '@/components/map/MapFiltersBar'
 import PaywallModal from '@/components/common/PaywallModal'
 import WelcomeOverlay from '@/components/common/WelcomeOverlay'
@@ -16,6 +19,7 @@ import PwaInstallOverlay from '@/components/common/PwaInstallOverlay'
 import DownloadMapModal from '@/components/common/DownloadMapModal'
 import LandingPage from '@/components/landing/LandingPage'
 import Onboarding from '@/components/common/Onboarding'
+import { trackEvent } from '@/lib/analytics'
 
 // Importação dinâmica do mapa (evita erro de SSR com Leaflet)
 const FishingMap = dynamic(
@@ -38,6 +42,7 @@ const FishingMap = dynamic(
 const NewCaptureForm = dynamic(() => import('@/components/captures/NewCaptureForm'), { ssr: false })
 const NewSpotForm = dynamic(() => import('@/components/map/NewSpotForm'), { ssr: false })
 const NewResortForm = dynamic(() => import('@/components/map/NewResortForm'), { ssr: false })
+const PostCapturePrompt = dynamic(() => import('@/components/captures/PostCapturePrompt'), { ssr: false })
 
 // Spots de exemplo (em produção viriam do Supabase)
 const DEMO_SPOTS: SpotMapView[] = [
@@ -50,8 +55,8 @@ const DEMO_SPOTS: SpotMapView[] = [
     display_lat: -13.4, display_lng: -50.7, exact_lat: -13.4, exact_lng: -50.7,
     total_captures: 23, latest_lure_type: 'topwater', latest_lure_model: 'Rapala X-Rap',
     latest_lure_color: 'Chartreuse', photo_url: null, owner_name: 'João Pescador', owner_avatar: null,
-    resort_id: null, is_resort: false, opening_hours: null, phone: null, instagram: null, 
-    website: null, resort_infrastructure: null, resort_prices: null, is_resort_partner: false, 
+    resort_id: null, is_resort: false, opening_hours: null, phone: null, instagram: null,
+    website: null, resort_infrastructure: null, resort_prices: null, is_resort_partner: false,
     resort_main_species: null, resort_active_highlight: null, resort_notice_board: null,
     open_tournaments_count: 0, searchable_species: null
   },
@@ -64,8 +69,8 @@ const DEMO_SPOTS: SpotMapView[] = [
     display_lat: -16.2, display_lng: -48.9, exact_lat: -16.189, exact_lng: -48.877,
     total_captures: 11, latest_lure_type: 'jig', latest_lure_model: 'Fish Head Jig 1/2oz',
     latest_lure_color: 'Laranja', photo_url: null, owner_name: 'Maria Silva', owner_avatar: null,
-    resort_id: null, is_resort: false, opening_hours: null, phone: null, instagram: null, 
-    website: null, resort_infrastructure: null, resort_prices: null, is_resort_partner: false, 
+    resort_id: null, is_resort: false, opening_hours: null, phone: null, instagram: null,
+    website: null, resort_infrastructure: null, resort_prices: null, is_resort_partner: false,
     resort_main_species: null, resort_active_highlight: null, resort_notice_board: null,
     open_tournaments_count: 0, searchable_species: null
   },
@@ -96,11 +101,18 @@ function HomeContent() {
   const [showWelcome, setShowWelcome] = useState(false)
   const [showPwaPrompt, setShowPwaPrompt] = useState(false)
   const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [showMapOnboarding, setShowMapOnboarding] = useState(false)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null)
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
+  const [showPostCapture, setShowPostCapture] = useState(false)
+  const [lastCaptureId, setLastCaptureId] = useState<string>('')
+  const [showRecommendations, setShowRecommendations] = useState(false)
 
   // Ler tema local do mapa
   useEffect(() => {
     const saved = localStorage.getItem('fishgada_map_theme') as 'dark' | 'light'
     if (saved) setMapTheme(saved)
+    trackEvent('map_viewed')
   }, [])
 
   // Monitorar auth
@@ -109,7 +121,7 @@ function HomeContent() {
       const { getSupabaseClient } = await import('@/lib/supabase/client')
       const supabase = getSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -117,11 +129,10 @@ function HomeContent() {
           .eq('id', user.id)
           .single()
         setUser({ ...user, profile: profile as any })
-        
-        // PWA and Welcome Logic
+
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
         const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
-        
+
         if (!(profile as any)?.has_seen_onboarding) {
           setShowWelcome(true)
         } else if (!isStandalone && !hasBeenPrompted) {
@@ -139,11 +150,10 @@ function HomeContent() {
             .eq('id', session.user.id)
             .single()
           setUser({ ...session.user, profile: profile as any })
-          
-          // PWA and Welcome Logic
+
           const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
           const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
-          
+
           if (!(profile as any)?.has_seen_onboarding) {
             setShowWelcome(true)
           } else if (!isStandalone && !hasBeenPrompted) {
@@ -165,9 +175,10 @@ function HomeContent() {
     setSelectedSpot(spot)
     setActiveSpotId(spot.id)
     setDrawerOpen(true)
+    setBottomSheetOpen(true)
   }, [])
 
-  // Lógica para selecionar spot via URL (ex: de um card de torneio)
+  // Lógica para selecionar spot via URL
   useEffect(() => {
     const spotId = searchParams.get('selectSpot')
     if (spotId && spots.length > 0) {
@@ -188,31 +199,29 @@ function HomeContent() {
     showOnlyPublic: false,
     showOnlyResorts: false,
     hidePublic: false,
+    privacyType: '',
+    maxDistance: 100,
+    showOnlyActive: false,
   })
 
   const filteredSpots = useMemo(() => {
     let result = spots
     if (filters.species) {
       let sp = filters.species.toLowerCase()
-      // Remove o nome científico
       if (sp.includes('(')) sp = sp.split('(')[0].trim()
-      
-      // Divide por '/' para casos como 'Pintado/Surubim'
       const searchTerms = sp.split('/').map(t => t.trim())
-      
       result = result.filter(s => {
         const target = (
-          s.title + ' ' + 
-          ((s as any).searchable_species || '') + ' ' + 
+          s.title + ' ' +
+          ((s as any).searchable_species || '') + ' ' +
           ((s as any).resort_main_species || '')
         ).toLowerCase()
-        
         return searchTerms.some(term => target.includes(term))
       })
     }
     if (filters.lureType) {
-      result = result.filter(s => 
-        s.latest_lure_type === filters.lureType || 
+      result = result.filter(s =>
+        s.latest_lure_type === filters.lureType ||
         ((s as any).searchable_lures || '').includes(filters.lureType)
       )
     }
@@ -231,6 +240,16 @@ function HomeContent() {
     if (filters.hidePublic) {
       result = result.filter(s => s.privacy_level !== 'public')
     }
+    if (filters.privacyType) {
+      if (filters.privacyType === 'partner') {
+        result = result.filter(s => s.is_resort_partner)
+      } else {
+        result = result.filter(s => s.privacy_level === filters.privacyType)
+      }
+    }
+    if (filters.showOnlyActive) {
+      result = result.filter(s => s.total_captures > 0 || (s as any).resort_active_highlight)
+    }
     return result
   }, [spots, filters])
 
@@ -239,13 +258,13 @@ function HomeContent() {
     try {
       const { getSupabaseClient } = await import('@/lib/supabase/client')
       const supabase = getSupabaseClient()
-      
+
       const { data, error } = await supabase
         .from('spots_map_view')
         .select('*')
-      
+
       if (error) throw error
-      
+
       if (data && data.length > 0) {
         setSpots(data as SpotMapView[])
       } else {
@@ -293,17 +312,17 @@ function HomeContent() {
   // Auto-sync quando voltar online
   useEffect(() => {
     if (!isOnline || pendingSync === 0 || !user) return
-    
+
     let isSubscribed = true
     const doSync = async () => {
       try {
         const { syncPendingData, getPendingCount } = await import('@/lib/offline/indexeddb')
         const { getSupabaseClient } = await import('@/lib/supabase/client')
         const supabase = getSupabaseClient()
-        
+
         console.log('[Sync] Iniciando sincronização em segundo plano...')
         const result = await syncPendingData(supabase, user.id)
-        
+
         if (!isSubscribed) return
 
         if (result.synced > 0) {
@@ -319,7 +338,7 @@ function HomeContent() {
         console.error('[Sync] Erro crítico no auto-sync:', err)
       }
     }
-    
+
     doSync()
     return () => { isSubscribed = false }
   }, [isOnline, pendingSync, user, fetchSpots])
@@ -332,7 +351,19 @@ function HomeContent() {
     }
     setActiveSpotId(spotId)
     setShowCaptureForm(true)
-  }, [user])
+    trackEvent('capture_started_from_map', {
+      place_type: selectedSpot?.is_resort_partner ? 'partner' : selectedSpot?.privacy_level || 'unknown',
+    })
+  }, [user, selectedSpot])
+
+  const handleCaptureSuccess = useCallback(() => {
+    setShowCaptureForm(false)
+    // Show post-capture prompt
+    setLastCaptureId(Date.now().toString())
+    setShowPostCapture(true)
+    trackEvent('capture_created', { source: 'map' })
+    fetchSpots()
+  }, [fetchSpots])
 
   // Highlights de pesqueiros filtrados pela viewport atual do mapa
   const viewportHighlights = useMemo<ResortHighlight[]>(() => {
@@ -343,7 +374,6 @@ function HomeContent() {
         const lat = s.display_lat ?? s.exact_lat
         const lng = s.display_lng ?? s.exact_lng
         if (lat == null || lng == null) return false
-        // Só mostra se estiver dentro da viewport visível
         return lat >= mapBounds.south && lat <= mapBounds.north && lng >= mapBounds.west && lng <= mapBounds.east
       })
       .map(s => ({ id: s.id, title: s.title, highlight: s.resort_active_highlight! }))
@@ -365,6 +395,24 @@ function HomeContent() {
     }).length
   }, [filteredSpots, mapBounds])
 
+  // Contagens contextuais para o filtro
+  const partnerCount = useMemo(() =>
+    filteredSpots.filter(s => s.is_resort_partner).length,
+    [filteredSpots]
+  )
+  const activeCount = useMemo(() =>
+    filteredSpots.filter(s => s.total_captures > 0).length,
+    [filteredSpots]
+  )
+  const speciesCount = useMemo(() => {
+    if (!filters.species) return 0
+    const sp = filters.species.toLowerCase().split('(')[0].trim()
+    return filteredSpots.filter(s => {
+      const target = (s.title + ' ' + ((s as any).searchable_species || '') + ' ' + ((s as any).resort_main_species || '')).toLowerCase()
+      return target.includes(sp)
+    }).length
+  }, [filteredSpots, filters.species])
+
   const handleVerify = useCallback((spotId: string) => {
     console.log('Verificar spot:', spotId)
   }, [])
@@ -378,6 +426,15 @@ function HomeContent() {
     }
   }, [creationMode])
 
+  const handleSpotFocus = useCallback((spot: SpotMapView) => {
+    handleSpotSelect(spot)
+  }, [handleSpotSelect])
+
+  const handleBottomSheetClose = useCallback(() => {
+    setBottomSheetOpen(false)
+    setActiveSpotId(null)
+    setSelectedSpot(null)
+  }, [])
 
   return (
     <div
@@ -404,23 +461,53 @@ function HomeContent() {
           theme={mapTheme}
           highlights={viewportHighlights}
           onHighlightClick={handleHighlightClick}
+          partnerCount={partnerCount}
+          activeCount={activeCount}
+          speciesCount={speciesCount}
         />
 
+        <FishingMap
+          spots={filteredSpots}
+          onSpotSelect={handleSpotSelect}
+          onMapClick={handleMapClick}
+          selectedSpotId={activeSpotId}
+          filterLureType={filters.lureType}
+          theme={mapTheme}
+          onBoundsChange={setMapBounds}
+          downloadPreview={showDownloadModal ? {
+            center: downloadCenter || [ -15.78, -47.92 ],
+            onCenterChange: setDownloadCenter
+          } : undefined}
+        />
 
+        {/* Map Onboarding — primeira visita */}
+        {showMapOnboarding && (
+          <MapOnboarding onComplete={() => setShowMapOnboarding(false)} />
+        )}
 
-              <FishingMap
-                spots={filteredSpots}
-                onSpotSelect={handleSpotSelect}
-                onMapClick={handleMapClick}
-                selectedSpotId={activeSpotId}
-                filterLureType={filters.lureType}
-                theme={mapTheme}
-                onBoundsChange={setMapBounds}
-                downloadPreview={showDownloadModal ? {
-                  center: downloadCenter || [ -15.78, -47.92 ], // Fallback default
-                  onCenterChange: setDownloadCenter
-                } : undefined}
-              />
+        {/* Recommendations Panel */}
+        {showRecommendations && (
+          <div className="absolute bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-80 z-[950] glass-elevated rounded-2xl border-white/10 shadow-2xl max-h-[50vh] overflow-y-auto"
+            style={{ background: 'var(--color-bg-primary)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+              <span className="text-[11px] font-black uppercase tracking-widest text-gray-300">Recomendados</span>
+              <button
+                onClick={() => setShowRecommendations(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+                aria-label="Fechar recomendações"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <RecommendedSpots
+              spots={filteredSpots}
+              userLocation={userLocation}
+              species={filters.species}
+              onSpotFocus={handleSpotFocus}
+            />
+          </div>
+        )}
 
         {creationMode && (
           <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] glass p-4 rounded-2xl border-accent/30 animate-bounce">
@@ -441,13 +528,13 @@ function HomeContent() {
             position: 'absolute',
             bottom: 17,
             right: 17,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 56px)',
+            display: 'flex',
+            flexDirection: 'column',
             gap: 8,
             zIndex: 900,
           }}
         >
-          {/* Top-Right: Nova Captura (Agora ocupa a linha superior inteira ou fica sozinho) */}
+          {/* Nova Captura */}
           <button
             id="fab-new-capture"
             className="btn-primary"
@@ -462,40 +549,28 @@ function HomeContent() {
             style={{
               width: 56, height: 56, borderRadius: 16, padding: 0,
               boxShadow: '0 8px 32px rgba(0, 212, 170, 0.4)',
-              gridColumn: '2', // Mantém na segunda coluna
             }}
             title="Nova Captura"
+            aria-label="Registrar nova captura de pesca"
           >
             <Plus size={24} />
           </button>
 
-          {/* Bottom-Left: Baixar Mapa Offline */}
+          {/* Recomendações */}
           <button
-            className="btn-secondary"
-            onClick={() => {
-              if (user?.profile?.subscription_tier === 'free' || !user) {
-                setPaywallFeature('Mapas Offline')
-                setShowPaywall(true)
-              } else {
-                // Ao abrir o modal, inicializa o centro do download no centro atual do mapa se for a primeira vez
-                if (!downloadCenter) {
-                  const centerLat = mapBounds.north !== 0 ? (mapBounds.north + mapBounds.south) / 2 : -15.7801
-                  const centerLng = mapBounds.east !== 0 ? (mapBounds.east + mapBounds.west) / 2 : -47.9292
-                  setDownloadCenter([centerLat, centerLng])
-                }
-                setShowDownloadModal(true)
-              }
-            }}
+            className={`btn-secondary ${showRecommendations ? 'ring-2 ring-accent' : ''}`}
+            onClick={() => setShowRecommendations(!showRecommendations)}
             style={{
               width: 56, height: 56, borderRadius: 16, padding: 0,
               boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             }}
-            title="Baixar Mapa Offline"
+            title="Locais recomendados"
+            aria-label="Ver locais recomendados"
           >
-            <Download size={20} className="text-blue-400" />
+            <Star size={20} className={showRecommendations ? 'text-amber-400' : 'text-amber-500/70'} />
           </button>
 
-          {/* Bottom-Right: Adicionar Ponto de Pesca */}
+          {/* Adicionar Ponto de Pesca */}
           <button
             id="fab-new-spot"
             className={`btn-secondary ${creationMode === 'spot' ? 'ring-2 ring-accent' : ''}`}
@@ -512,11 +587,13 @@ function HomeContent() {
               boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
             }}
             title="Adicionar Ponto de Pesca"
+            aria-label="Adicionar novo ponto de pesca no mapa"
           >
             <MapPin size={22} color="var(--color-accent-primary)" />
           </button>
         </div>
 
+        {/* Offline indicator */}
         {!isOnline && (
           <div className="glass absolute" style={{ bottom: 16, left: '50%', transform: 'translateX(-50%)', padding: '10px 20px', borderRadius: 10, zIndex: 900, borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
@@ -524,20 +601,15 @@ function HomeContent() {
           </div>
         )}
 
+        {/* Pending sync */}
         {isOnline && pendingSync > 0 && (
-          <div 
-            className="glass absolute" 
-            style={{ 
-              bottom: 16, 
-              left: '50%', 
-              transform: 'translateX(-50%)', 
-              padding: '10px 20px', 
-              borderRadius: 12, 
-              zIndex: 900, 
+          <div
+            className="glass absolute"
+            style={{
+              bottom: 16, left: '50%', transform: 'translateX(-50%)',
+              padding: '10px 20px', borderRadius: 12, zIndex: 900,
               borderColor: user ? 'rgba(0, 212, 170, 0.3)' : 'rgba(245, 158, 11, 0.3)',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 10,
+              display: 'flex', alignItems: 'center', gap: 10,
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
             }}
           >
@@ -560,6 +632,7 @@ function HomeContent() {
         )}
       </main>
 
+      {/* Desktop: Side Panel (existing) */}
       <SpotDetailsView
         spot={selectedSpot}
         isOpen={drawerOpen}
@@ -567,6 +640,7 @@ function HomeContent() {
           setDrawerOpen(false)
           setActiveSpotId(null)
           setSelectedSpot(null)
+          setBottomSheetOpen(false)
         }}
         onNewCapture={handleNewCapture}
         user={user}
@@ -576,13 +650,33 @@ function HomeContent() {
         }}
       />
 
+      {/* Mobile/Desktop: Bottom Sheet */}
+      <SpotBottomSheet
+        spot={selectedSpot}
+        isOpen={bottomSheetOpen && !drawerOpen}
+        onClose={handleBottomSheetClose}
+        onNewCapture={handleNewCapture}
+        userLocation={userLocation}
+        user={user}
+      />
+
       {showCaptureForm && (
         <NewCaptureForm
           spotId={activeSpotId}
           userId={userId}
           isOnline={isOnline}
           onClose={() => setShowCaptureForm(false)}
-          onSuccess={() => setShowCaptureForm(false)}
+          onSuccess={handleCaptureSuccess}
+        />
+      )}
+
+      {showPostCapture && (
+        <PostCapturePrompt
+          spotId={activeSpotId}
+          captureId={lastCaptureId}
+          userId={userId}
+          onClose={() => setShowPostCapture(false)}
+          onSkip={() => setShowPostCapture(false)}
         />
       )}
 
@@ -610,29 +704,31 @@ function HomeContent() {
       )}
 
       {showPaywall && (
-        <PaywallModal 
-          isOpen={showPaywall} 
-          onClose={() => setShowPaywall(false)} 
+        <PaywallModal
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
           featureName={paywallFeature}
           user={user}
         />
       )}
 
       {showWelcome && (
-        <Onboarding 
+        <Onboarding
           user_id={user?.id}
           onComplete={() => {
             setShowWelcome(false)
-            // Atualizar o state do usuário localmente também
             setUser((prev: any) => prev ? { ...prev, profile: { ...prev.profile, has_seen_onboarding: true } } : null)
-            
-            // Depois do Onboarding, se não for standalone, mostra o prompt do PWA
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
             const hasBeenPrompted = localStorage.getItem('fishgada_pwa_prompt_dismissed') === 'true'
             if (!isStandalone && !hasBeenPrompted) {
               setShowPwaPrompt(true)
             }
-          }} 
+            // Mostrar onboarding do mapa após o onboarding geral
+            const mapOnboardingSeen = localStorage.getItem('fishgada_map_onboarding_dismissed') === 'true'
+            if (!mapOnboardingSeen) {
+              setShowMapOnboarding(true)
+            }
+          }}
         />
       )}
 
@@ -641,7 +737,7 @@ function HomeContent() {
       )}
 
       {showDownloadModal && (
-        <DownloadMapModal 
+        <DownloadMapModal
           onClose={() => setShowDownloadModal(false)}
           center={downloadCenter || [0,0]}
           mapTheme={mapTheme}

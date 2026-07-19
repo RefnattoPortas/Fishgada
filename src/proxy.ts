@@ -1,8 +1,33 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Rotas administrativas que exigem autorização extra
+const ADMIN_ROUTES = ['/admin', '/resort-admin']
+
+// Origens permitidas para redirect pós-login
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.NEXT_PUBLIC_VERCEL_URL,
+  'http://localhost:3000',
+  'https://fishgada.vercel.app',
+].filter(Boolean)
+
+function isAllowedRedirect(url: string): boolean {
+  if (!url || url.startsWith('/')) return true
+  try {
+    const parsed = new URL(url)
+    return ALLOWED_ORIGINS.some(origin => {
+      if (!origin) return false
+      const originUrl = new URL(origin.startsWith('http') ? origin : `https://${origin}`)
+      return parsed.hostname === originUrl.hostname
+    })
+  } catch {
+    return false
+  }
+}
+
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -17,28 +42,12 @@ export async function proxy(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          request.cookies.set({ name, value, ...options })
+          response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          request.cookies.set({ name, value: '', ...options })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
@@ -46,21 +55,28 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Proteção de Rotas de Autenticação
+  // ── 1. Proteção de Rotas de Autenticação ──
   const authProtectedRoutes = ['/profile', '/settings', '/captures', '/radar', '/ranking', '/explore']
   const isAuthProtectedRoute = authProtectedRoutes.some(path => request.nextUrl.pathname.startsWith(path))
 
   if (!user && isAuthProtectedRoute) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // ── 2. Proteção de Rotas Administrativas ──
+  const isAdminRoute = ADMIN_ROUTES.some(path => request.nextUrl.pathname.startsWith(path))
+  if (isAdminRoute && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 2. Proteção de Rotas PRO (Paywall)
+  // ── 3. Proteção de Rotas PRO ──
   if (user) {
     const proRoutes = ['/explore', '/ranking']
     const isProRoute = proRoutes.some(path => request.nextUrl.pathname.startsWith(path))
 
     if (isProRoute) {
-      // Buscar status PRO no perfil
       const { data: profile } = await supabase
         .from('profiles')
         .select('plan_type, trial_ends_at')
@@ -72,10 +88,49 @@ export async function proxy(request: NextRequest) {
                    (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date())
 
       if (!isPro) {
-        // Redirecionar para Landing Page de upgrade com resumo dos benefícios
         return NextResponse.redirect(new URL('/upgrade', request.url))
       }
     }
+  }
+
+  // ── 4. Validar redirects externos ──
+  const redirectParam = request.nextUrl.searchParams.get('redirect')
+  if (redirectParam && !isAllowedRedirect(redirectParam)) {
+    const url = request.nextUrl.clone()
+    url.searchParams.delete('redirect')
+    return NextResponse.redirect(url)
+  }
+
+  // ── 5. Security Headers ──
+  // Content-Security-Policy (Report-Only — monitorar violações antes de ativar bloqueio)
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.googleusercontent.com https://*.cartocdn.com https://*.supabase.co https://*.gravatar.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.cartocdn.com https://accounts.google.com https://*.googleapis.com",
+    "frame-src 'self' https://*.stripe.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ]
+
+  response.headers.set('Content-Security-Policy-Report-Only', cspDirectives.join('; '))
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(self), interest-cohort=()'
+  )
+
+  // Cache-Control para rotas protegidas
+  if (isAdminRoute || isAuthProtectedRoute) {
+    response.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate')
+  } else {
+    // Páginas públicas mantêm cache eficiente
+    response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
   }
 
   return response

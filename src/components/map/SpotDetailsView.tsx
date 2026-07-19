@@ -100,13 +100,13 @@ export default function SpotDetailsView({
     }
   }
 
+  const supabase = getSupabaseClient()
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    ;(supabase.auth as any).getUser().then(({ data: { user } }: any) => {
       setUserId(user?.id || null)
     })
   }, [])
-
-  const supabase = getSupabaseClient()
 
   useEffect(() => {
     if (spot && isOpen) {
